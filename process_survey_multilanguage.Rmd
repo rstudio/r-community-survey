@@ -227,7 +227,8 @@ ggplot(survey) +
 
 ```{r R Tools Used, echo = TRUE}
 # Breaks up uses into nested lists, split by commas
-uses <- survey %>% mutate(application = map(Qtools_with_r, str_split, ", ")) %>% unnest()
+uses <- survey %>% mutate(tools = str_replace_all(Qtools_with_r, "i.e., ", ""))
+uses <- uses %>% mutate(application = map(tools, str_split, ", ")) %>% unnest()
 tools_used <- uses %>% unnest() %>% group_by(application) %>% count(sort=TRUE)
 
 # Count the non-NA entries now
