@@ -17,6 +17,20 @@ params:
 
 # Learning R Survey Results
 
+## Methodology
+
+- Survey conducted between December 6 and December 31, 2018
+- Survey was fielded in both English and Spanish versions
+- Respondents solicited from
+    + community.rstudio.com
+    + Twitter followers of RStudio employees
+    + reddit.com/datascience
+- Survey results are not representative of any broader population
+- Data and processing scripts can be found the repo at the end of this talk
+- Data and scripts are open source
+
+## Setup
+
 ```{r setup, include=FALSE}
 
 knitr::opts_chunk$set(echo = FALSE)
@@ -146,6 +160,9 @@ ggplot(team_num_survey, aes(x = Qteam_r_users, group = learner_type)) +
 ```{r Ages By Learner Type, echo = TRUE}
 
 ss <- survey %>% filter(!is.na(learner_type) & !is.na(Qr_difficulty_experienced))
+ss_grouped <- ss %>% 
+  group_by(learner_type, Qr_difficulty_experienced) %>% 
+  count(Qr_difficulty_experienced)
 ggplot(ss) +
   geom_bar(aes(x = Qr_difficulty_experienced, y = ..prop.., fill = learner_type, group = learner_type),
            position = position_dodge(width = 0.5),
@@ -183,6 +200,8 @@ app_plot <- rbind(app_plot, other) %>% drop_na()
 ggplot(app_plot) +
   geom_col(aes(x=reorder(application, pct), y = pct),
            fill =  params$bar_colors) +
+  geom_text(aes(x=reorder(application, pct), y = pct / 2, label = paste0(pct, "%")), 
+            color="gray80", size=3) +
   labs(title = "What Do You Use R For?", x="Application", y="Percent") +
   coord_flip()
 
@@ -204,3 +223,37 @@ ggplot(survey) +
   scale_x_continuous(breaks = 1:10) +
     labs(title = sprintf("How Likely Are You To Recommend R To A Friend Or Colleague?\nNet Promoter Score = %s,        Rating: %s", nps, npr), x="Score", y="Count")
 ```
+## What Tools Do You Use With R?
+
+```{r R Tools Used, echo = TRUE}
+# Breaks up uses into nested lists, split by commas
+uses <- survey %>% mutate(application = map(Qtools_with_r, str_split, ", ")) %>% unnest()
+tools_used <- uses %>% unnest() %>% group_by(application) %>% count(sort=TRUE)
+
+# Count the non-NA entries now
+use_responses <- survey %>% summarize(responses = sum(!is.na(Qused_for)))
+tools_used <- tools_used %>% mutate(pct = round(n / use_responses$responses * 100)) %>% arrange(desc(pct))
+
+# Now take these responses and only show the top N, aggregating the rest into an Other category
+# This will be a function soon.
+
+app_plot <- head(tools_used, 15) %>% ungroup()
+other <- tail(tools_used, -15) %>% 
+  ungroup() %>% 
+  summarize(application = "Other", 
+            n = sum(n), 
+            pct = round(n / use_responses$responses * 100))
+app_plot <- rbind(app_plot, other) %>% drop_na() 
+
+# Plot
+ggplot(app_plot) +
+  geom_col(aes(x=reorder(application, pct), y = pct),
+           fill =  params$bar_colors) +
+  geom_text(aes(x=reorder(application, pct), y = pct / 2, label = paste0(pct, "%")), 
+            color="gray80", size=3) +
+  labs(title = "What Tools Do You Use With R?", x="Tool", y="Percent") +
+  coord_flip()
+
+```
+
+
