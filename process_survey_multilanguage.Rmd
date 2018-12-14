@@ -12,6 +12,7 @@ output:
 subtitle: 14 December 2018
 params:
   bar_colors: dark green
+  language: English
 ---
 
 # Learning R Survey Results
@@ -29,7 +30,11 @@ library(gendercodeR)
 # we do the substitution here.
 
 mysheets <- gs_ls() # will authenticate
-survey_handle <- gs_title("Learning R Internet Survey")
+if (params$language == "English") {
+  survey_handle <- gs_title("Learning R Internet Survey")
+} else {
+  survey_handle <- gs_title("Learning R Internet Survey (Spanish Version)")
+}
  # get the survey results
 survey <- survey_handle %>%
   gs_read(ws = "Form Responses 1")
@@ -62,7 +67,7 @@ theme_set(theme_bw())
 survey <- survey %>% mutate(number_responses = cumsum(!is.na(Qtime)))
 ggplot(survey) + 
   geom_line(aes(x=Qtime, y=number_responses)) + 
-  ggtitle(sprintf("Survey Responses Over Time (N = %d)",respondents)) + 
+  ggtitle(sprintf("%s Survey Responses Over Time (N = %d)",params$language, respondents)) + 
   labs(y = "Time", x = "Response Date")
 
 ```
