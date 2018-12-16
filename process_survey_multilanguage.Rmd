@@ -12,7 +12,7 @@ output:
 subtitle: 14 December 2018
 params:
   bar_colors: dark green
-  language: English
+  language: Spanish
 ---
 
 # Learning R Survey Results
@@ -44,12 +44,21 @@ library(gendercodeR)
 # we do the substitution here.
 
 mysheets <- gs_ls() # will authenticate
-if (params$language == "English") {
-  survey_handle <- gs_title("Learning R Internet Survey")
-} else {
-  survey_handle <- gs_title("Learning R Internet Survey (Spanish Version)")
+
+sheet_name <- case_when(
+  params$language == "English" ~ "Learning R Internet Survey",
+  params$language == "Spanish" ~ "Learning R Internet Survey (Spanish Version)",
+  TRUE ~ "Unknown language"
+)
+
+if (sheet_name == "Unknown language") {
+  print ("YAML header parameter not set to Spanish or English")
+  stop();
 }
- # get the survey results
+
+survey_handle <- gs_title(sheet_name)
+
+# get the survey results
 survey <- survey_handle %>%
   gs_read(ws = "Form Responses 1")
 
