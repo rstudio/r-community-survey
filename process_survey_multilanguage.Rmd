@@ -12,7 +12,7 @@ output:
 subtitle: 14 December 2018
 params:
   bar_colors: dark green
-  language: Spanish
+  language: English
 ---
 
 # Learning R Survey Results
@@ -77,9 +77,15 @@ survey <- survey %>%
   mutate(learner_type = ifelse(Qr_year < 1900, NA, ifelse(Qr_year <= 2016, "Early Learner", "Recent Learner")))
 
 # This codes the open-text gender question into a more friendly form for analysis
-survey$Qgender <- tolower(survey$Qgender)
-survey_gendercoded <- genderRecode(survey, method = "narrow", genderColName = "Qgender", outputColName = "Qgender_coded")
-
+opentext_gender_dictionary <- read_csv("data/opentext_gender_dictionary.csv")
+survey$Qgender <- survey$Qgender %>% tolower() %>% str_trim()
+survey <- genderRecode(survey, method = "narrow", 
+                       genderColName = "Qgender",
+                       outputColName = "Qgender_coded",
+                       customDictionary = opentext_gender_dictionary)
+uncoded_genders <- survey %>% group_by(Qgender_coded) %>% count(sort = TRUE)
+# write_csv(uncoded_genders, "data/uncoded_genders_language.csv")
+# 
 theme_set(theme_bw())
 
 ```
@@ -95,6 +101,55 @@ ggplot(survey) +
 
 ```
 
+# Demographics
+
+## Respondent Ages
+
+```{r Respondent Ages, echo = TRUE}
+
+ggplot(survey) +
+  geom_histogram(aes(2018 - Qyear_born), binwidth = 5,  fill = params$bar_colors, color="black") +
+  scale_x_continuous(breaks = seq(15,80,5)) +
+  labs(title = "Respondent Ages (Histogram)", x="Age", y="Count")
+```
+
+## Respondent Gender
+
+```{r Respondent Gender, echo = TRUE}
+
+genders <- survey %>% 
+  group_by(Qgender_coded) %>% 
+  count(sort = TRUE) %>% 
+  mutate(unit = 1) %>% 
+  drop_na()
+
+gender_responses <- sum(genders$n, na.rm = TRUE)
+genders <- genders %>% 
+  group_by(unit) %>% 
+  mutate(percent = round(n / gender_responses * 100),
+         position = cumsum(percent) - percent / 2,
+         label = ifelse(percent >= 10, paste0(percent, "%"), "")) %>% 
+  arrange(desc(percent))
+
+ggplot(genders) + 
+  geom_col(aes(x = as.factor(unit), y = percent, 
+               fill = Qgender_coded), 
+           position = "stack") +
+  geom_text(aes(x = as.factor(unit), 
+                y = position, 
+                label = label),
+            color = "gray90") +
+  labs(title = "Respondent Gender", x="", y="", fill="") +
+  scale_fill_brewer(palette = "Set1") +
+  theme(panel.background = element_blank(), 
+        panel.grid = element_blank(),
+        axis.ticks = element_blank(),
+        axis.text.x  = element_blank(),
+        axis.text.y  = element_blank(),
+        panel.border = element_blank()) +
+  coord_flip()
+
+```
 
 ## Respondent Countries
 
@@ -122,15 +177,10 @@ ggplot(data = plot_countries, aes(long, lat, group=group)) +
   scale_y_continuous(breaks = seq(-60, 90, 30), limits = c(-60, 90)) +
   labs(title = "Geographical Distribution of Survey Respondents", x = "", y = "", fill = "Responses")
 ```
-## Respondent Ages
+## Ethnicity
 
-```{r Respondent Ages, echo = TRUE}
 
-ggplot(survey) +
-  geom_histogram(aes(2018 - Qyear_born), binwidth = 5,  fill = params$bar_colors, color="black") +
-  scale_x_continuous(breaks = seq(15,80,5)) +
-  labs(title = "Respondent Ages (Histogram)", x="Age", y="Count")
-```
+
 
 ## Respondent Ages By Learner Type
 
@@ -182,13 +232,7 @@ ggplot(ss) +
 ```
 
 
-## Respondent Gender
 
-```{r Respondent Gender, echo = TRUE}
-# survey_gendercoded <- genderRecode(survey, genderColName = "Qgender", outputColName = "Qgender_coded")
-# genders <- survey_gendercoded %>% count(Qgender_coded, sort = TRUE)
-## Much work to do here
-```
 
 ## What is R Used For?
 
@@ -215,6 +259,7 @@ ggplot(app_plot) +
   coord_flip()
 
 ```
+
 ## Net Promoter Score
 
 ```{r Net Promoter Score, echo = TRUE}
@@ -232,6 +277,7 @@ ggplot(survey) +
   scale_x_continuous(breaks = 1:10) +
     labs(title = sprintf("How Likely Are You To Recommend R To A Friend Or Colleague?\nNet Promoter Score = %s,        Rating: %s", nps, npr), x="Score", y="Count")
 ```
+
 ## What Tools Do You Use With R?
 
 ```{r R Tools Used, echo = TRUE}
@@ -265,5 +311,4 @@ ggplot(app_plot) +
   coord_flip()
 
 ```
-
 
