@@ -231,9 +231,6 @@ ggplot(ss) +
   labs(title = "Difficulty in Learning R", x="Respondent Rating (5 = Most Difficult)", y="", fill = "Learner Type")
 ```
 
-
-
-
 ## What is R Used For?
 
 ```{r R Used For, echo = TRUE}
@@ -281,31 +278,47 @@ ggplot(survey) +
 ## What Tools Do You Use With R?
 
 ```{r R Tools Used, echo = TRUE}
-# Breaks up uses into nested lists, split by commas
-uses <- survey %>% mutate(tools = str_replace_all(Qtools_with_r, "i.e., ", ""))
-uses <- uses %>% mutate(application = map(tools, str_split, ", ")) %>% unnest()
-tools_used <- uses %>% unnest() %>% group_by(application) %>% count(sort=TRUE)
 
-# Count the non-NA entries now
-use_responses <- survey %>% summarize(responses = sum(!is.na(Qused_for)))
-tools_used <- tools_used %>% mutate(pct = round(n / use_responses$responses * 100)) %>% arrange(desc(pct))
+split_and_aggregate <- function(df, question_name) {
+  quoted_question <- enquo(question_name)
+  responses_df <- df %>% summarize(responses = sum(!is.na(!!quoted_question)))
+  splits <- df %>% mutate(items = map(!!quoted_question, str_split, ", ")) %>% unnest()
+  
+  aggregated_items <- splits %>% unnest() %>% group_by(items) %>% count(sort=TRUE)
+  aggregated_items <- aggregated_items %>% mutate(num_responses = responses_df$responses)
+  return(aggregated_items)
+}
 
-# Now take these responses and only show the top N, aggregating the rest into an Other category
-# This will be a function soon.
+top_n_choices <- function(df, column_name, num = 10) {
+  
+  quoted_column_name <- enquo(column_name)
+  summarized_responses <- df %>% 
+    mutate(pct = round(n / num_responses * 100)) %>% 
+    arrange(desc(pct))
 
-app_plot <- head(tools_used, 15) %>% ungroup()
-other <- tail(tools_used, -15) %>% 
-  ungroup() %>% 
-  summarize(application = "Other", 
-            n = sum(n), 
-            pct = round(n / use_responses$responses * 100))
-app_plot <- rbind(app_plot, other) %>% drop_na() 
+  # Now take these responses and only show the top N, aggregating the rest into an Other category
+
+  literals <- head(summarized_responses, num) %>% 
+    ungroup()
+  other <- tail(summarized_responses, -num) %>% 
+    ungroup() %>% 
+    summarize(!!quoted_column_name := "Other", 
+              n = sum(n),
+              num_responses = first(num_responses),
+              pct = round(n / first(num_responses) * 100))
+  top_n <- rbind(literals, other) %>% drop_na()
+  return(top_n)
+}
+
+uses <- survey %>% transmute(tools = str_replace_all(Qtools_with_r, "i.e., ", ""))
+tools_used <- split_and_aggregate(uses, tools)
+top_15_items <- top_n_choices(tools_used, items, 15)
 
 # Plot
-ggplot(app_plot) +
-  geom_col(aes(x=reorder(application, pct), y = pct),
+ggplot(top_15_items) +
+  geom_col(aes(x=reorder(items, pct), y = pct),
            fill =  params$bar_colors) +
-  geom_text(aes(x=reorder(application, pct), y = pct / 2, label = paste0(pct, "%")), 
+  geom_text(aes(x=reorder(items, pct), y = pct / 2, label = paste0(pct, "%")), 
             color="gray80", size=3) +
   labs(title = "What Tools Do You Use With R?", x="Tool", y="Percent") +
   coord_flip()
