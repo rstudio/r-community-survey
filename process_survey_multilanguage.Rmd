@@ -39,6 +39,44 @@ library(tidyverse)
 library(RColorBrewer)
 library(gendercodeR)
 
+###
+### Let's define helper functions before we get going:
+###
+
+split_and_aggregate <- function(df, question_name) {
+  quoted_question <- enquo(question_name)
+  responses_df <- df %>% summarize(responses = sum(!is.na(!!quoted_question)))
+  splits <- df %>% mutate(items = map(!!quoted_question, str_split, ", ")) %>% unnest()
+  
+  aggregated_items <- splits %>% unnest() %>% group_by(items) %>% count(sort=TRUE)
+  aggregated_items <- aggregated_items %>% mutate(num_responses = responses_df$responses)
+  return(aggregated_items)
+}
+
+top_n_choices <- function(df, column_name, total_responses, num = 10) {
+  
+  quoted_column_name <- enquo(column_name)
+  summarized_responses <- df %>% 
+    mutate(percent = round(n / total_responses * 100)) %>% 
+    arrange(desc(percent))
+
+  # Now take these responses and only show the top N, aggregating the rest into an Other category
+
+  literals <- head(summarized_responses, num) %>% 
+    ungroup()
+  other <- tail(summarized_responses, -num) %>% 
+    ungroup() %>% 
+    summarize(!!quoted_column_name := "Other", 
+              n = sum(n),
+              percent = round(n / first(total_responses) * 100))
+  top_n <- rbind(literals, other) %>% drop_na()
+  return(top_n)
+}
+
+##############################################################
+### This section begins the mainline code to read the survey #
+##############################################################
+
 # First, we'll just read in the data and fix all the question names, which in Google Forms, are literally
 # the full text of the question. I've put short question names on another sheet of the results Google Sheet, so
 # we do the substitution here.
@@ -131,24 +169,19 @@ genders <- genders %>%
          label = ifelse(percent >= 10, paste0(percent, "%"), "")) %>% 
   arrange(desc(percent))
 
-ggplot(genders) + 
-  geom_col(aes(x = as.factor(unit), y = percent, 
-               fill = Qgender_coded), 
-           position = "stack") +
-  geom_text(aes(x = as.factor(unit), 
-                y = position, 
-                label = label),
-            color = "gray90") +
-  labs(title = "Respondent Gender", x="", y="", fill="") +
-  scale_fill_brewer(palette = "Set1") +
-  theme(panel.background = element_blank(), 
-        panel.grid = element_blank(),
-        axis.ticks = element_blank(),
-        axis.text.x  = element_blank(),
-        axis.text.y  = element_blank(),
-        panel.border = element_blank()) +
-  coord_flip()
-
+ggplot(genders, aes(x = "", y = percent, fill = Qgender_coded)) +
+    geom_bar(width = 1, size = 1, color = "gray90", stat = "identity", alpha = 0.7) +
+    coord_polar("y") +
+    geom_text(aes(label = paste0(round(percent), "%")), 
+              position = position_stack(vjust = 0.5)) +
+    labs(x = NULL, y = NULL, fill = NULL, 
+         title = "Respondent Gender") +
+    guides(fill = guide_legend()) +
+    scale_fill_brewer(palette = "Set1") +
+    theme_classic() +
+    theme(axis.line = element_blank(),
+          axis.text = element_blank(),
+          axis.ticks = element_blank())
 ```
 
 ## Respondent Countries
@@ -177,7 +210,63 @@ ggplot(data = plot_countries, aes(long, lat, group=group)) +
   scale_y_continuous(breaks = seq(-60, 90, 30), limits = c(-60, 90)) +
   labs(title = "Geographical Distribution of Survey Respondents", x = "", y = "", fill = "Responses")
 ```
-## Ethnicity
+## Industry
+
+
+```{r Respondent industry, echo = TRUE}
+library(ggrepel)
+industry <- survey %>% count(Qindustry, sort = TRUE)
+industry_responses <- sum(!is.na(survey$Qindustry))
+industry <- industry %>% mutate(percent = round(n / industry_responses * 100, 0))
+
+top_10_industries <- top_n_choices(industry, Qindustry, industry_responses, 10)
+
+# ggplot(industry, aes(area = percent, fill = as.numeric(percent), label = sprintf("%s\n%d%%", Qindustry, percent))) +
+#  geom_treemap() +
+#  geom_treemap_text(color = "white", 
+#                    place = "center",
+#                    reflow = TRUE) +
+#  scale_fill_continuous(type = "gradient") +
+#  labs(title = "Respondent Industry")
+
+top_10_industries <- top_10_industries %>% 
+  mutate(short_industry = str_replace(Qindustry, " \\(Federal, State, or Local\\)", ""),
+         short_industry = str_replace(short_industry, "Services", "Svcs."),
+         short_industry = str_replace(short_industry, "Information Technologies", "Info. Tech."),
+         short_industry = str_replace(short_industry, "Professional and ", "Prof./"),
+         short_industry = str_replace(short_industry, " and Activities", ""),
+         short_industry = str_replace(short_industry, " and Medicine", ""),
+         short_industry = str_replace(short_industry, " Resources and ", " Resources/"),
+         short_industry = str_replace(short_industry, " and ", " & "))
+         
+top_10_industries <- top_10_industries %>% 
+  mutate(Qindustry = factor(Qindustry, levels = Qindustry),
+         position = cumsum(percent) - percent / 2,
+         label = ifelse(percent >= 5, paste0(short_industry, "\n", round(percent), "%"), ""))
+
+ggplot(top_10_industries) +
+    geom_col(aes(x = 1, y = percent, fill = Qindustry), 
+             width = 1, size = 1, color = "gray90") +
+    geom_text(aes(x = 1.2, y = 100 - position, label = label),
+              size = 3,
+              hjust = 0.4,
+              color = "black"
+#              direction = "both",
+    ) +
+    labs(x = NULL, y = NULL, 
+         title = "Respondent Industry",
+         subtitle = "Question text",
+         caption = "Annotation text") +
+    guides(fill = guide_legend()) +
+    scale_fill_viridis_d("Industry", option = "B", direction = 1, alpha = 0.4) +
+    theme(legend.key.width=unit(1, "cm")) +
+    theme_classic() +
+    coord_polar("y") +
+    theme(axis.line = element_blank(),
+         axis.text = element_blank(),
+         axis.ticks = element_blank())
+
+```
 
 
 
@@ -239,18 +328,18 @@ uses <- survey %>% mutate(application = map(Qused_for, str_split, ", ")) %>% unn
 tools_used <- uses %>% unnest() %>% group_by(application) %>% count(sort=TRUE)
 # Count the non-NA entries now
 use_responses <- survey %>% summarize(responses = sum(!is.na(Qused_for)))
-tools_used <- tools_used %>% mutate(pct = round(n / use_responses$responses * 100)) %>% arrange(desc(pct))
+tools_used <- tools_used %>% mutate(percent = round(n / use_responses$responses * 100)) %>% arrange(desc(percent))
 app_plot <- head(tools_used, 15) %>% ungroup()
 other <- tail(tools_used, -15) %>% 
   ungroup() %>% 
   summarize(application = "Other", 
             n = sum(n), 
-            pct = round(n / use_responses$responses * 100))
+            percent = round(n / use_responses$responses * 100))
 app_plot <- rbind(app_plot, other) %>% drop_na()
 ggplot(app_plot) +
-  geom_col(aes(x=reorder(application, pct), y = pct),
+  geom_col(aes(x=reorder(application, percent), y = percent),
            fill =  params$bar_colors) +
-  geom_text(aes(x=reorder(application, pct), y = pct / 2, label = paste0(pct, "%")), 
+  geom_text(aes(x=reorder(application, percent), y = percent / 2 + 1, label = paste0(percent, "%")), 
             color="gray80", size=3) +
   labs(title = "What Do You Use R For?", x="Application", y="Percent") +
   coord_flip()
@@ -268,9 +357,10 @@ nps <- round(sum(recommend_scores$percent[9:10], na.rm=TRUE) -
                sum(recommend_scores$percent[1:6], na.rm=TRUE))  # Standard NPS formula (see Wikipedia)
 npr <- nps %>% cut(breaks = c(-100, 0, 50, 75, 100), labels = c("Dangerous", "Good", "Excellent", "World Class"))
 
-
-ggplot(survey) +
-  geom_histogram(aes(x = Qrecommend), binwidth = 1,  fill = params$bar_colors, color="black") +
+ggplot(recommend_scores) +
+  geom_col(aes(x = Qrecommend, y = percent), fill = params$bar_colors, color="black") +
+  geom_text(aes(x = Qrecommend, y = percent + 3, label = paste0(round(percent), "%")), 
+            color="black", size=3) +
   scale_x_continuous(breaks = 1:10) +
     labs(title = sprintf("How Likely Are You To Recommend R To A Friend Or Colleague?\nNet Promoter Score = %s,        Rating: %s", nps, npr), x="Score", y="Count")
 ```
@@ -279,46 +369,19 @@ ggplot(survey) +
 
 ```{r R Tools Used, echo = TRUE}
 
-split_and_aggregate <- function(df, question_name) {
-  quoted_question <- enquo(question_name)
-  responses_df <- df %>% summarize(responses = sum(!is.na(!!quoted_question)))
-  splits <- df %>% mutate(items = map(!!quoted_question, str_split, ", ")) %>% unnest()
-  
-  aggregated_items <- splits %>% unnest() %>% group_by(items) %>% count(sort=TRUE)
-  aggregated_items <- aggregated_items %>% mutate(num_responses = responses_df$responses)
-  return(aggregated_items)
-}
-
-top_n_choices <- function(df, column_name, num = 10) {
-  
-  quoted_column_name <- enquo(column_name)
-  summarized_responses <- df %>% 
-    mutate(pct = round(n / num_responses * 100)) %>% 
-    arrange(desc(pct))
-
-  # Now take these responses and only show the top N, aggregating the rest into an Other category
-
-  literals <- head(summarized_responses, num) %>% 
-    ungroup()
-  other <- tail(summarized_responses, -num) %>% 
-    ungroup() %>% 
-    summarize(!!quoted_column_name := "Other", 
-              n = sum(n),
-              num_responses = first(num_responses),
-              pct = round(n / first(num_responses) * 100))
-  top_n <- rbind(literals, other) %>% drop_na()
-  return(top_n)
-}
-
 uses <- survey %>% transmute(tools = str_replace_all(Qtools_with_r, "i.e., ", ""))
+num_tool_responses <- sum(!is.na(survey$Qtools_with_r))
 tools_used <- split_and_aggregate(uses, tools)
-top_15_items <- top_n_choices(tools_used, items, 15)
+tools_used <- tools_used %>% 
+  select(-num_responses) %>% 
+  mutate(percent = round(n / num_tool_responses * 100))
+top_15_items <- top_n_choices(tools_used, items, num_tool_responses, 15)
 
 # Plot
 ggplot(top_15_items) +
-  geom_col(aes(x=reorder(items, pct), y = pct),
+  geom_col(aes(x=reorder(items, percent), y = percent),
            fill =  params$bar_colors) +
-  geom_text(aes(x=reorder(items, pct), y = pct / 2, label = paste0(pct, "%")), 
+  geom_text(aes(x=reorder(items, percent), y = percent / 2, label = paste0(percent, "%")), 
             color="gray80", size=3) +
   labs(title = "What Tools Do You Use With R?", x="Tool", y="Percent") +
   coord_flip()
