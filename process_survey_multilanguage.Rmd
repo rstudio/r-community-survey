@@ -43,6 +43,9 @@ library(gendercodeR)
 ### Let's define helper functions before we get going:
 ###
 
+
+# Split and aggregate: derives multiple answers to a single question by separating on commas and returning
+# the results as an embedded list in the dataframe.
 split_and_aggregate <- function(df, question_name) {
   quoted_question <- enquo(question_name)
   responses_df <- df %>% summarize(responses = sum(!is.na(!!quoted_question)))
@@ -53,6 +56,8 @@ split_and_aggregate <- function(df, question_name) {
   return(aggregated_items)
 }
 
+# Top N choices: function to distill many possible results to a question to the top N
+# responses, with the rest aggregated into an "Other" answer.
 top_n_choices <- function(df, column_name, total_responses, num = 10) {
   
   quoted_column_name <- enquo(column_name)
@@ -71,6 +76,13 @@ top_n_choices <- function(df, column_name, total_responses, num = 10) {
               percent = round(n / first(total_responses) * 100))
   top_n <- rbind(literals, other) %>% drop_na()
   return(top_n)
+}
+
+question_text <- function(question_name_string)
+{
+   question_text <- survey_questions %>% filter(Question_name == question_name_string) %>% select(Question_text)
+   return_text <- question_text$Question_text %>% str_wrap(width = 50)
+   return(paste0('"', return_text, '"'))
 }
 
 ##############################################################
@@ -175,7 +187,9 @@ ggplot(genders, aes(x = "", y = percent, fill = Qgender_coded)) +
     geom_text(aes(label = paste0(round(percent), "%")), 
               position = position_stack(vjust = 0.5)) +
     labs(x = NULL, y = NULL, fill = NULL, 
-         title = "Respondent Gender") +
+         title = "Respondent Gender", 
+         subtitle = question_text("Qgender"), 
+         caption = "2018 RStudio Learning R Survey") +
     guides(fill = guide_legend()) +
     scale_fill_brewer(palette = "Set1") +
     theme_classic() +
@@ -208,13 +222,14 @@ ggplot(data = plot_countries, aes(long, lat, group=group)) +
   coord_fixed(1.3) +
   scale_x_continuous(breaks = seq(-150, 150, 60)) +
   scale_y_continuous(breaks = seq(-60, 90, 30), limits = c(-60, 90)) +
-  labs(title = "Geographical Distribution of Survey Respondents", x = "", y = "", fill = "Responses")
+  labs(title = "Geographical Distribution of Survey Respondents", 
+       subtitle = question_text("Qcountry"),
+       caption = "2018 RStudio Learning R Survey",
+       x = "", y = "", fill = "Responses")
 ```
 ## Industry
 
-
 ```{r Respondent industry, echo = TRUE}
-library(ggrepel)
 industry <- survey %>% count(Qindustry, sort = TRUE)
 industry_responses <- sum(!is.na(survey$Qindustry))
 industry <- industry %>% mutate(percent = round(n / industry_responses * 100, 0))
@@ -255,8 +270,8 @@ ggplot(top_10_industries) +
     ) +
     labs(x = NULL, y = NULL, 
          title = "Respondent Industry",
-         subtitle = "Question text",
-         caption = "Annotation text") +
+         subtitle = question_text("Qindustry"),
+         caption = "2018 RStudio Learning R Survey") +
     guides(fill = guide_legend()) +
     scale_fill_viridis_d("Industry", option = "B", direction = 1, alpha = 0.4) +
     theme(legend.key.width=unit(1, "cm")) +
@@ -278,7 +293,9 @@ ggplot(top_10_industries) +
 ggplot(filter(survey, !is.na(learner_type)), aes(x = 2018 - Qyear_born, group = learner_type)) +
   geom_density(aes(fill = learner_type), color="black", alpha = 0.5) +
   scale_fill_brewer(palette = "Set1") +
-  labs(title = "Respondent Ages (Density Plot)", x="Age", y="Density", fill = "Learner Type")
+  labs(title = "Respondent Ages (Density Plot)", 
+         caption = "2018 RStudio Learning R Survey",
+       x="Age", y="Density", fill = "Learner Type")
 ```
 
 ## Year Respondents Learned R
@@ -288,7 +305,10 @@ ggplot(filter(survey, !is.na(learner_type)), aes(x = 2018 - Qyear_born, group = 
 ggplot(filter(survey, Qr_year >= 1990)) +
   geom_histogram(aes(Qr_year), binwidth = 1, fill = params$bar_colors, color="black") +
   scale_x_continuous(breaks = c(1990, 1995, 2000, 2005, 2010, 2015, 2018)) +
-  labs(title = "Year Started Learning R (Histogram)", x="Year", y="Count")
+  labs(title = "Year Started Learning R", 
+       subtitle = question_text("Qr_year"),
+       caption = "2018 RStudio Learning R Survey",
+       x="Year", y="Count")
 ```
 
 
@@ -300,7 +320,10 @@ ggplot(team_num_survey, aes(x = Qteam_r_users, group = learner_type)) +
   geom_density(aes(fill = learner_type), color="black", alpha = 0.5) +
   scale_x_continuous(trans = "log10") +
   scale_fill_brewer(palette = "Set1") +
-  labs(title = "Number of Team Members Who Know R (Density Plot)", x="Number", y="Density", fill = "Learner Type")
+  labs(title = "Number of Team Members Who Know R (Density Plot)", 
+       subtitle = question_text("Qteam_r_users"),
+       caption = "2018 RStudio Learning R Survey",
+       x="Number", y="Density", fill = "Learner Type")
 ```
 
 ## Difficulty of Learning R based on Learner Type
@@ -317,7 +340,10 @@ ggplot(ss) +
            alpha = 0.5) +
   scale_y_continuous(labels = scales::percent) +
   scale_fill_brewer(palette = "Set1") +
-  labs(title = "Difficulty in Learning R", x="Respondent Rating (5 = Most Difficult)", y="", fill = "Learner Type")
+  labs(title = "Difficulty in Learning R", 
+       subtitle = question_text("Qr_difficulty_experienced"),
+       caption = "2018 RStudio Learning R Survey",
+ x="Respondent Rating (5 = Most Difficult)", y="", fill = "Learner Type")
 ```
 
 ## What is R Used For?
@@ -341,7 +367,10 @@ ggplot(app_plot) +
            fill =  params$bar_colors) +
   geom_text(aes(x=reorder(application, percent), y = percent / 2 + 1, label = paste0(percent, "%")), 
             color="gray80", size=3) +
-  labs(title = "What Do You Use R For?", x="Application", y="Percent") +
+  labs(title = "What Do You Use R For?", 
+       subtitle = question_text("Qused_for"),
+       caption = "2018 RStudio Learning R Survey",
+x="Application", y="Percent") +
   coord_flip()
 
 ```
@@ -362,7 +391,10 @@ ggplot(recommend_scores) +
   geom_text(aes(x = Qrecommend, y = percent + 3, label = paste0(round(percent), "%")), 
             color="black", size=3) +
   scale_x_continuous(breaks = 1:10) +
-    labs(title = sprintf("How Likely Are You To Recommend R To A Friend Or Colleague?\nNet Promoter Score = %s,        Rating: %s", nps, npr), x="Score", y="Count")
+    labs(title = question_text("Qrecommend"),
+       subtitle = sprintf("Net Promoter Score = %s,        Rating: %s", nps, npr),
+       caption = "2018 RStudio Learning R Survey",
+       x="Score", y="Count")
 ```
 
 ## What Tools Do You Use With R?
@@ -383,7 +415,10 @@ ggplot(top_15_items) +
            fill =  params$bar_colors) +
   geom_text(aes(x=reorder(items, percent), y = percent / 2, label = paste0(percent, "%")), 
             color="gray80", size=3) +
-  labs(title = "What Tools Do You Use With R?", x="Tool", y="Percent") +
+  labs(title = "What Tools Do You Use With R?", 
+       subtitle = question_text("Qtools_with_r"),
+       caption = "2018 RStudio Learning R Survey",
+       x="Tool", y="Percent") +
   coord_flip()
 
 ```
