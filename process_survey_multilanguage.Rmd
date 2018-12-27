@@ -282,7 +282,34 @@ ggplot(top_10_industries) +
          axis.ticks = element_blank())
 
 ```
+## Ethnicity
 
+```{r Ethnicity, echo = TRUE}
+# Multiple categories selected will be separated by commas, so we'll count those as multiple ethnicities
+# This will probably miscategorize some open ends, but a quick analysis showed we have very few open ends
+# with embedded commas.
+
+ethnicities <- survey %>% transmute(categories = ifelse("," %in% Qethnicity, "Multi-ethnic", Qethnicity))
+num_ethnicity_responses <- sum(!is.na(survey$Qethnicity))
+ethnicities_found <- split_and_aggregate(ethnicities, categories)
+ethnicities_found <- ethnicities_found %>% 
+  select(-num_responses) %>% 
+  mutate(percent = round(n / num_ethnicity_responses * 100))
+top_15_items <- top_n_choices(ethnicities_found, items, num_tool_responses, 15)
+
+# Plot
+ggplot(top_15_items) +
+  geom_col(aes(x=reorder(items, percent), y = percent),
+           fill =  params$bar_colors) +
+  geom_text(aes(x=reorder(items, percent), y = percent / 2, label = paste0(percent, "%")), 
+            color="gray80", size=3) +
+  labs(title = "What Tools Do You Use With R?", 
+       subtitle = question_text("Qtools_with_r"),
+       caption = "2018 RStudio Learning R Survey",
+       x="Tool", y="Percent") +
+  coord_flip()
+
+```
 
 
 
