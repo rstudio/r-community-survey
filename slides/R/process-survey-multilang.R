@@ -1,8 +1,7 @@
 # this script does the following:
-# 1. Defines helper functions
-# 2. Imports survey data from googlesheets
-# 3. Does some pre-processing for column names
-# 4. Does some pre-processing for the free text gender field
+# 1. Imports survey data from googlesheets
+# 2. Does some pre-processing for column names
+# 3. Does some pre-processing for the free text gender field
 
 language <- "English" # may also be "Spanish"
 
@@ -13,52 +12,6 @@ library(RColorBrewer)
 library(gendercodeR)
 library(here)
 
-
-###
-### Let's define helper functions before we get going:
-###
-
-
-# Split and aggregate: derives multiple answers to a single question by separating on commas and returning
-# the results as an embedded list in the dataframe.
-split_and_aggregate <- function(df, question_name) {
-  quoted_question <- enquo(question_name)
-  responses_df <- df %>% summarize(responses = sum(!is.na(!!quoted_question)))
-  splits <- df %>% mutate(items = map(!!quoted_question, str_split, ", ")) %>% unnest()
-  
-  aggregated_items <- splits %>% unnest() %>% group_by(items) %>% count(sort=TRUE)
-  aggregated_items <- aggregated_items %>% mutate(num_responses = responses_df$responses)
-  return(aggregated_items)
-}
-
-# Top N choices: function to distill many possible results to a question to the top N
-# responses, with the rest aggregated into an "Other" answer.
-top_n_choices <- function(df, column_name, total_responses, num = 10) {
-  
-  quoted_column_name <- enquo(column_name)
-  summarized_responses <- df %>% 
-    mutate(percent = round(n / total_responses * 100)) %>% 
-    arrange(desc(percent))
-  
-  # Now take these responses and only show the top N, aggregating the rest into an Other category
-  
-  literals <- head(summarized_responses, num) %>% 
-    ungroup()
-  other <- tail(summarized_responses, -num) %>% 
-    ungroup() %>% 
-    summarize(!!quoted_column_name := "Other", 
-              n = sum(n),
-              percent = round(n / first(total_responses) * 100))
-  top_n <- rbind(literals, other) %>% drop_na()
-  return(top_n)
-}
-
-question_text <- function(question_name_string)
-{
-  question_text <- survey_questions %>% filter(Question_name == question_name_string) %>% select(Question_text)
-  return_text <- question_text$Question_text %>% str_wrap(width = 50)
-  return(paste0('"', return_text, '"'))
-}
 
 ##############################################################
 ### This section begins the mainline code to read the survey #
