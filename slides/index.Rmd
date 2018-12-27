@@ -449,18 +449,6 @@ name: alison-lollipop
 
 
 ```{r r-used-lollipop}
-use_responses <- survey %>% 
-  summarize(responses = sum(!is.na(Qused_for))) %>% 
-  pull()
-
-used_for <- survey %>% 
-  separate_rows(Qused_for, sep = ", ") %>% 
-  mutate(Qused_for = str_to_title(Qused_for),
-         Qused_fct = fct_lump(as.factor(Qused_for), n = 15)) %>% 
-  count(Qused_fct, sort = TRUE) %>% 
-  drop_na(Qused_fct) %>%
-  mutate(prop_used = round(n / use_responses, 1))
-
 ggplot(used_for, aes(x = fct_reorder(Qused_fct, prop_used), 
                      y = prop_used)) +
   geom_point(color = bar_color, size = 2) + #<<
