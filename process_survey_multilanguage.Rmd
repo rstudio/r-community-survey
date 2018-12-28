@@ -81,7 +81,11 @@ top_n_choices <- function(df, column_name, total_responses, num = 10) {
 question_text <- function(question_name_string)
 {
    question_text <- survey_questions %>% filter(Question_name == question_name_string) %>% select(Question_text)
-   return_text <- question_text$Question_text %>% str_wrap(width = 50)
+   if (length(question_text$Question_text) >= 60) {
+     return_text <- question_text$Question_text %>% str_wrap(width = 50)
+   } else {
+     return_text <- question_text$Question_text
+   }
    return(paste0('"', return_text, '"'))
 }
 
@@ -119,6 +123,14 @@ survey_questions <- survey_handle %>% gs_read(ws="Question Names")
 names(survey) <- survey_questions$Question_name
 respondents <- nrow(survey)
 survey_save <- survey                # in case I mess up survey, I can check it against this
+```
+
+
+```{r survey pre-processing, include=FALSE}
+
+survey <- survey_save   # This is just to ensure I get the original survey each time I run this block.
+
+# Make the times correct times
 est <- locale(tz="US/Eastern")
 survey$Qtime <- parse_datetime(survey$Qtime, format = "%m/%d/%Y %H:%M:%S", locale=est)
 
@@ -127,16 +139,40 @@ survey <- survey %>%
   mutate(learner_type = ifelse(Qr_year < 1900, NA, ifelse(Qr_year <= 2016, "Early Learner", "Recent Learner")))
 
 # This codes the open-text gender question into a more friendly form for analysis
+survey$Qgender <- survey$Qgender %>% tolower() %>% str_trim() %>% str_replace_all("[[:punct:]]", "")
+
 opentext_gender_dictionary <- read_csv("data/opentext_gender_dictionary.csv")
-survey$Qgender <- survey$Qgender %>% tolower() %>% str_trim()
+gender_dictionary <- opentext_gender_dictionary %>%  mutate(Input = str_replace_all(Input, "[[:punct:]]", ""))
 survey <- genderRecode(survey, method = "narrow", 
                        genderColName = "Qgender",
                        outputColName = "Qgender_coded",
-                       customDictionary = opentext_gender_dictionary)
+                       customDictionary = gender_dictionary)
+survey <- survey %>% mutate(Qgender_coded = ifelse(Qgender_coded == "", NA, Qgender_coded))
 uncoded_genders <- survey %>% group_by(Qgender_coded) %>% count(sort = TRUE)
-# write_csv(uncoded_genders, "data/uncoded_genders_language.csv")
-# 
-theme_set(theme_bw())
+# write_csv(uncoded_genders, "data/uncoded_genders_language.csv")  # For detecting open ends we should code
+
+# This codes the ethnicity question for further analysis
+# We recognize that this is both an offensive question to some and an imperfect classification
+# Its purpose is to simply measure how diverse our community is. Our rationale is that if
+# we do not attempt to measure the R community's diversity, then our claims of community diversity
+# are meaningless because our only measurements are anecdotal.
+
+opentext_ethnicity_dictionary <- read_csv("data/opentext_ethnicity_dictionary.csv")
+ethnicity_dictionary <- opentext_ethnicity_dictionary %>%  
+  mutate(Input = str_replace_all(Input, "[[:punct:]]", ""))
+
+# Yes, I know this will cause false categorizations of open-ended responses with commas as Multiple Ethnicities
+# That said, I can't see an obvious other way to detect multiple ethnicities beyond the dictionary matches below
+
+survey <- survey %>% 
+  mutate(Qethnicity_processed = ifelse(str_detect(Qethnicity, ","), "Multiple Ethnicities", Qethnicity))
+survey$Qethnicity_processed <- survey$Qethnicity_processed %>% tolower() %>% str_trim() %>% str_replace_all("[[:punct:]]", "")
+survey <- survey %>% left_join(ethnicity_dictionary, by=c("Qethnicity_processed" = "Input"))
+survey <- survey %>% mutate(Qethnicity_coded = ifelse(Qethnicity_coded == "Prefer not to answer", NA, Qethnicity_coded))
+collected_ethnicities <- survey %>% group_by(Qethnicity_coded) %>% count(sort = TRUE)
+write_csv(collected_ethnicities %>% select(Qethnicity_coded), "data/collected_ethnicities_english.csv")
+
+theme_set(theme_classic())
 
 ```
 
@@ -227,6 +263,7 @@ ggplot(data = plot_countries, aes(long, lat, group=group)) +
        caption = "2018 RStudio Learning R Survey",
        x = "", y = "", fill = "Responses")
 ```
+
 ## Industry
 
 ```{r Respondent industry, echo = TRUE}
@@ -289,25 +326,44 @@ ggplot(top_10_industries) +
 # This will probably miscategorize some open ends, but a quick analysis showed we have very few open ends
 # with embedded commas.
 
-ethnicities <- survey %>% transmute(categories = ifelse("," %in% Qethnicity, "Multi-ethnic", Qethnicity))
-num_ethnicity_responses <- sum(!is.na(survey$Qethnicity))
-ethnicities_found <- split_and_aggregate(ethnicities, categories)
-ethnicities_found <- ethnicities_found %>% 
-  select(-num_responses) %>% 
-  mutate(percent = round(n / num_ethnicity_responses * 100))
-top_15_items <- top_n_choices(ethnicities_found, items, num_tool_responses, 15)
+ethnicities <-survey %>% group_by(Qethnicity_coded) %>% count(sort = TRUE)
+num_ethnicity_responses <- sum(!is.na(survey$Qethnicity_coded))
+ethnicities <- ethnicities %>% 
+  mutate(percent = round(n / num_ethnicity_responses * 100, 0)) %>%
+  ungroup() %>% 
+  drop_na()
+
+ethnicities <- ethnicities %>% 
+ mutate(Qethnicity_coded = factor(Qethnicity_coded, levels = Qethnicity_coded),
+         position = cumsum(percent) - percent / 2,
+         label = ifelse(percent >= 2, paste0(Qethnicity_coded, "\n", round(percent), "%"), ""))
 
 # Plot
-ggplot(top_15_items) +
-  geom_col(aes(x=reorder(items, percent), y = percent),
-           fill =  params$bar_colors) +
-  geom_text(aes(x=reorder(items, percent), y = percent / 2, label = paste0(percent, "%")), 
-            color="gray80", size=3) +
-  labs(title = "What Tools Do You Use With R?", 
-       subtitle = question_text("Qtools_with_r"),
-       caption = "2018 RStudio Learning R Survey",
-       x="Tool", y="Percent") +
-  coord_flip()
+ggplot(ethnicities) +
+    geom_col(aes(x = 1, y = percent, fill = Qethnicity_coded), 
+             width = 1, size = 1, color = "gray90", alpha = 0.4) +
+    geom_text_repel(aes(x = 1.2, y = 100 - position, label = label),
+              size = 3,
+              hjust = 0.4,
+              color = "black",
+              direction = "y",
+              force = 0.8
+    ) +
+    labs(x = NULL, y = NULL, 
+         title = "Respondent Ethnicities",
+         subtitle = question_text("Qethnicity"),
+         caption = "2018 RStudio Learning R Survey",
+         fill = "Selected Ethnicity") +
+    guides(fill = guide_legend()) +
+    scale_fill_brewer(palette = "Set1") +
+#   scale_fill_viridis_d("Ethnicities", option = "A", direction = -1, alpha = 0.4) +
+    theme(legend.key.width=unit(1, "cm")) +
+    theme_classic() +
+   coord_polar("y") +
+#    coord_flip() +
+    theme(axis.line = element_blank(),
+         axis.text = element_blank(),
+         axis.ticks = element_blank())
 
 ```
 
