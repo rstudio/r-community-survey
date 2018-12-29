@@ -35,13 +35,33 @@ params:
 
 knitr::opts_chunk$set(echo = FALSE)
 library(googlesheets)
+library(choroplethr)
+library(choroplethrMaps)
+data(country.map)
 library(tidyverse)
 library(RColorBrewer)
 library(gendercodeR)
+library(ggrepel)
 
 ###
 ### Let's define helper functions before we get going:
 ###
+
+# This tallies up the results for a question
+# rm.na = TRUE to calculate percentages based on non-NA results; set to FALSE to include NAs
+# set sort = TRUE sorts the result by count; set to FALSE to return in whatever order they occur
+
+tally_question <- function(df, question_name, rm.na = TRUE, sort = TRUE) {
+  quoted_question <- enquo(question_name)
+  filtered_df <- df
+  if (rm.na) {
+    filtered_df <- filtered_df %>% filter(!is.na(!!quoted_question))
+  }
+  results_df <- filtered_df %>% 
+    count(!!quoted_question, sort = sort) %>% add_tally() %>% 
+    mutate(percent = round(n / nn * 100))
+  return(results_df)
+}
 
 
 # Split and aggregate: derives multiple answers to a single question by separating on commas and returning
@@ -49,7 +69,7 @@ library(gendercodeR)
 split_and_aggregate <- function(df, question_name) {
   quoted_question <- enquo(question_name)
   responses_df <- df %>% summarize(responses = sum(!is.na(!!quoted_question)))
-  splits <- df %>% mutate(items = map(!!quoted_question, str_split, ", ")) %>% unnest()
+  splits <- df %>% mutate(items = purrr::map(!!quoted_question, str_split, ", ")) %>% unnest()
   
   aggregated_items <- splits %>% unnest() %>% group_by(items) %>% count(sort=TRUE)
   aggregated_items <- aggregated_items %>% mutate(num_responses = responses_df$responses)
@@ -81,7 +101,7 @@ top_n_choices <- function(df, column_name, total_responses, num = 10) {
 question_text <- function(question_name_string)
 {
    question_text <- survey_questions %>% filter(Question_name == question_name_string) %>% select(Question_text)
-   if (length(question_text$Question_text) >= 60) {
+   if (length(question_text$Question_text) >= 55) {
      return_text <- question_text$Question_text %>% str_wrap(width = 50)
    } else {
      return_text <- question_text$Question_text
@@ -244,10 +264,6 @@ unknown_countries <- c("singapore", "korea", "south", "serbia and montenegro", "
 choro_countries <- countries %>% filter(!(region %in% unknown_countries))
 choro_countries <- choro_countries %>% mutate(region = str_replace_all(region, "korea, south", "south korea"))
 
-library(choroplethr)
-library(choroplethrMaps)
-data(country.map)
-
 # country_choropleth(choro_countries, title = "", legend = "", num_colors = 8,
 #  zoom = NULL)
 
@@ -367,7 +383,51 @@ ggplot(ethnicities) +
 
 ```
 
+# Learning Questions
 
+## What is Your Experience with R?
+
+```{r R Experience so far, echo = TRUE}
+# Multiple categories selected will be separated by commas, so we'll count those as multiple ethnicities
+# This will probably miscategorize some open ends, but a quick analysis showed we have very few open ends
+# with embedded commas.
+
+r_experience <- tally_question(survey, Qr_experience, rm.na = TRUE, sort = FALSE)
+
+r_experience <- r_experience %>% 
+ mutate(Qr_experience_factor = factor(Qr_experience, levels = Qr_experience),
+         position = cumsum(percent) - percent / 2,
+         label = ifelse(percent >= 2, paste0(Qr_experience, "\n", round(percent), "%"), ""))
+
+
+# Plot
+ggplot(r_experience) +
+    geom_col(aes(x = 1, y = percent, fill = Qr_experience_factor), 
+             width = 1, size = 1, color = "gray90", alpha = 0.4) +
+    geom_text_repel(aes(x = 1.2, y = 100 - position, label = label),
+              size = 3,
+              hjust = 0.4,
+              color = "black",
+              direction = "y",
+              force = 0.8
+    ) +
+    labs(x = NULL, y = NULL, 
+         title = "R Experience",
+         subtitle = question_text("Qr_experience"),
+         caption = "2018 RStudio Learning R Survey",
+         fill = "Level of Experience") +
+    guides(fill = guide_legend()) +
+    scale_fill_brewer(palette = "Set1") +
+#   scale_fill_viridis_d("Ethnicities", option = "A", direction = -1, alpha = 0.4) +
+    theme(legend.key.width=unit(1, "cm")) +
+    theme_classic() +
+   coord_polar("y") +
+#    coord_flip() +
+    theme(axis.line = element_blank(),
+         axis.text = element_blank(),
+         axis.ticks = element_blank())
+
+```
 
 ## Respondent Ages By Learner Type
 
@@ -433,7 +493,7 @@ ggplot(ss) +
 
 ```{r R Used For, echo = TRUE}
 # Breaks up uses into nested lists
-uses <- survey %>% mutate(application = map(Qused_for, str_split, ", ")) %>% unnest()
+uses <- survey %>% mutate(application = purrr::map(Qused_for, str_split, ", ")) %>% unnest()
 tools_used <- uses %>% unnest() %>% group_by(application) %>% count(sort=TRUE)
 # Count the non-NA entries now
 use_responses <- survey %>% summarize(responses = sum(!is.na(Qused_for)))
