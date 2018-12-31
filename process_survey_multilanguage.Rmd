@@ -43,6 +43,8 @@ library(RColorBrewer)
 library(gendercodeR)
 library(ggrepel)
 
+survey_name = "2018 RStudio Learning R Survey"
+
 ###
 ### Let's define helper functions before we get going:
 ###
@@ -112,22 +114,23 @@ question_text <- function(question_name_string, wrap_length = 55)
 ## Plot a pie chart from a single response question. The call form is a little baroque, so here's an example
 ## to illustrate the mapping of values to arguments.
 ##     pie_chart(df = ethnicities, 
-##               column_name            = Qethnicity_coded, 
-##               original_column_string = "Qethnicity",
-##               text_position          = position        ## the name of the position column in the df
-##               title_string           = "Ethnicities", 
-##               fill_legend_title      = "Respondent Ethnicity"
-##               colors                 = "Set1"         From the RColorBrewer palettes
+##               column_name                 = Qethnicity_coded, 
+##               text_position_expression    = 100 - position  ## the name of the position column in the df
+##               title_string                = "Ethnicities",
+##               subtitle_string             =  question_text("Qethnicity", 50)
+##               fill_legend_title           = "Respondent Ethnicity"
+##               colors                      = "Set1"         From the RColorBrewer palettes
 
 pie_chart <- function(df, 
-                      column_name, 
-                      original_column_string, 
-                      text_position,
-                      title_string, 
-                      fill_legend_title, 
-                      colors ) {
+                      column_name,                # non-standard evalation column name
+                      text_position_expression,   # either a column name or an expression
+                      title_string = "",
+                      subtitle_string = "",
+                      caption_string = survey_name,
+                      fill_legend_title = "",
+                      colors = "Set1") {
   quoted_column_name <- enquo(column_name)
-  quoted_position <- enquo(text_position)
+  quoted_position <- enquo(text_position_expression)
   p <- ggplot(df) +
     geom_col(aes(x = 1, y = percent, fill = !!quoted_column_name), 
              width = 1, size = 1, color = "gray90", alpha = 0.4) +
@@ -138,8 +141,8 @@ pie_chart <- function(df,
      ) +
     labs(x = NULL, y = NULL, 
          title = title_string,
-         subtitle = question_text(original_column_string),
-         caption = "2018 RStudio Learning R Survey",
+         subtitle = subtitle_string,
+         caption = caption_string,
          fill = fill_legend_title) +
     guides(fill = guide_legend()) +
     scale_fill_brewer(palette = colors) +
@@ -152,8 +155,45 @@ pie_chart <- function(df,
           axis.text = element_blank(),
           axis.ticks = element_blank())
   print(p)
+  return(p)
 }
 
+## Plot a simple horizontal bar chart. The call form is a little baroque, so here's an example
+## to illustrate the mapping of values to arguments.
+##     bar_chart(df = ethnicities, 
+##               column_name            = Qethnicity_coded, 
+##               original_column_string = "Qethnicity",
+##               text_position          = position        ## the name of the position column in the df
+##               title_string           = "Ethnicities", 
+##               fill_legend_title      = "Respondent Ethnicity"
+##               colors                 = "Set1"         From the RColorBrewer palettes
+
+bar_chart <- function(df,
+                     column_name, 
+                     fill_color,
+                     title_string,
+                     subtitle_string = "",
+                     caption_string = survey_name) {
+  
+  quoted_column <- enquo(column_name)
+  
+  p <- ggplot(df) +
+    geom_col(aes(x = !!quoted_column, y = percent),
+             fill =  fill_color) +
+    geom_text(aes(x = !!quoted_column, y = percent , 
+                  label = paste0(percent, "%")), 
+              color="gray30", size=3, nudge_y = 4) +
+    labs(title = "What Tools Do You Use With R?", 
+         subtitle = subtitle_string,
+         caption = caption_string,
+         x="", y="") +
+    coord_flip() +
+    theme(axis.line = element_blank(),
+          axis.text.x = element_blank(),
+          axis.ticks = element_blank())
+  print(p)
+  return(p)
+}
 ```
 
 
@@ -295,27 +335,11 @@ genders <- genders %>%
     
 pie_chart(df                 = genders,
           column_name        = Qgender_coded,
-          original_column_string = "Qgender",
+          subtitle_string    = question_text("Qgender"),
           text_position          = position,
           title_string           = "Respondent Gender",
           fill_legend_title      = "Gender",
           colors                 = "Set1")
-
-# ggplot(genders, aes(x = "", y = percent, fill = Qgender_coded)) +
-#     geom_bar(width = 1, size = 1, color = "gray90", stat = "identity", alpha = 0.7) +
-#     coord_polar("y") +
-#     geom_text(aes(label = paste0(round(percent), "%")), 
-#               position = position_stack(vjust = 0.5)) +
-#     labs(x = NULL, y = NULL, fill = NULL, 
-#          title = "Respondent Gender", 
-#          subtitle = question_text("Qgender"), 
-#          caption = "2018 RStudio Learning R Survey") +
-#     guides(fill = guide_legend()) +
-#     scale_fill_brewer(palette = "Set1") +
-#     theme_classic() +
-#     theme(axis.line = element_blank(),
-#           axis.text = element_blank(),
-#           axis.ticks = element_blank())
 
 ```
 
@@ -341,7 +365,7 @@ ggplot(data = plot_countries, aes(long, lat, group=group)) +
   scale_y_continuous(breaks = seq(-60, 90, 30), limits = c(-60, 90)) +
   labs(title = "Geographical Distribution of Survey Respondents", 
        subtitle = question_text("Qcountry"),
-       caption = "2018 RStudio Learning R Survey",
+       caption = survey_name,
        x = "", y = "", fill = "Responses")
 ```
 
@@ -377,13 +401,13 @@ top_10_industries <- top_10_industries %>%
          position = cumsum(percent) - percent / 2,
          label = ifelse(percent >= 5, paste0(short_industry, "\n", round(percent), "%"), ""))
 
-
-pie_chart(df                 = top_10_industries,
-          column_name        = Qindustry,
-          original_column_string = "Qindustry",
+pie_chart(df                     = top_10_industries,
+          column_name            = Qindustry,
           text_position          = 100 - position,
           title_string           = "Respondent Industry",
+          subtitle_string        = question_text("Qindustry"),
           fill_legend_title      = "",
+          caption_string         = paste0("RStudio Learning R Survey, n = ",industry_responses),
           colors                 = "Set3")
 
 ```
@@ -423,7 +447,7 @@ ggplot(ethnicities) +
     labs(x = NULL, y = NULL, 
          title = "Respondent Ethnicities",
          subtitle = question_text("Qethnicity"),
-         caption = "2018 RStudio Learning R Survey",
+         caption = paste0(survey_name, ", n = ", num_ethnicity_responses),
          fill = "Selected Ethnicity") +
     guides(fill = guide_legend()) +
     scale_fill_brewer(palette = "Set1") +
@@ -448,7 +472,7 @@ ggplot(ethnicities) +
 # with embedded commas.
 
 r_experience <- tally_question(survey, Qr_experience, rm.na = TRUE, sort = FALSE)
-
+r_experience_responses <- first(r_experience$nn)
 r_experience <- r_experience %>% 
  mutate(Qr_experience_factor = factor(Qr_experience, levels = Qr_experience),
          position = cumsum(percent) - percent / 2,
@@ -456,9 +480,10 @@ r_experience <- r_experience %>%
 
 pie_chart(df                 = r_experience,
           column_name        = Qr_experience_factor,
-          original_column_string = "Qr_experience",
           text_position          = 100 - position,
           title_string           = "R Experience",
+          subtitle_string        = question_text("Qr_experience"),
+          caption_string         = paste0("RStudio Learning R Survey, n = ",r_experience_responses),
           fill_legend_title      = "",
           colors                 = "Set1")
 
@@ -474,8 +499,9 @@ pie_chart(df                 = r_experience,
 r_path_dictionary <- read_delim("data/r-path-dictionary.tsv", delim = "\t")
 r_paths <- survey %>% select(Qr_learning_path) %>% left_join(r_path_dictionary, c("Qr_learning_path" = "Input"))
 r_path_results <- tally_question(r_paths, Output, rm.na = TRUE, sort = TRUE)
-answer_table <- r_path %>% select(Qr_learning_path, n)
+# answer_table <- r_paths %>% select(Qr_learning_path, n)
 # write_delim(answer_table, "data/r-path-dictionary.tsv", delim="\t")
+r_path_responses <- first(r_path_results$nn)
 
 r_path_results <- r_path_results %>% 
  mutate(Output = factor(Output, levels = Output),
@@ -484,11 +510,13 @@ r_path_results <- r_path_results %>%
 
 pie_chart(df                 = r_path_results,
           column_name        = Output,
-          original_column_string = "Qr_learning_path",
           text_position          = 100 - position,
           title_string           = "R Learning Path",
+          subtitle_string        = question_text("Qr_learning_path"),
+          caption_string         = paste0(survey_name, ", n = ", r_path_responses),
           fill_legend_title      = "",
           colors                 = "Set2")
+
 
 ```
 
@@ -496,12 +524,24 @@ pie_chart(df                 = r_path_results,
 
 ```{r R Learning Ages By Learner Type, echo = TRUE}
 
-ggplot(filter(survey, !is.na(learner_type)), aes(x = 2018 - Qyear_born, group = learner_type)) +
-  geom_density(aes(fill = learner_type), color="black", alpha = 0.5) +
-  scale_fill_brewer(palette = "Set1") +
-  labs(title = "Respondent Ages (Density Plot)", 
-         caption = "2018 RStudio Learning R Survey",
-       x="Age", y="Density", fill = "Learner Type")
+ages <- survey %>%
+  filter(!is.na(learner_type) & Qyear_born < 2010) %>% 
+  mutate(age = 2018 - Qyear_born)
+
+mean_ages <- ages %>% 
+  group_by(learner_type) %>% 
+  summarize(mean_age = mean(age, na.rm = TRUE))
+
+ggplot(ages, aes(x = learner_type, y = age, group = learner_type)) +
+  geom_violin(aes(color = learner_type), width = 0.5) +
+  geom_jitter(aes(color = learner_type), alpha = 0.1, width = 0.02) +
+  scale_y_continuous(breaks = seq(15,90,5)) +
+  scale_color_brewer(palette = "Dark2") +
+  labs(title = "Respondent Age",
+       subtitle = sprintf("Early Learner Mean Age = %d, Recent Learner = %d", 
+                          round(mean_ages$mean_age[1]), round(mean_ages$mean_age[2])),
+       caption = survey_name,
+       x="Learner Type", y="Age", color = "Learner Type")
 ```
 
 ## Year Respondents Learned R
@@ -513,7 +553,7 @@ ggplot(filter(survey, Qr_year >= 1990)) +
   scale_x_continuous(breaks = c(1990, 1995, 2000, 2005, 2010, 2015, 2018)) +
   labs(title = "Year Started Learning R", 
        subtitle = question_text("Qr_year"),
-       caption = "2018 RStudio Learning R Survey",
+       caption = survey_name,
        x="Year", y="Count")
 ```
 
@@ -522,14 +562,17 @@ ggplot(filter(survey, Qr_year >= 1990)) +
 
 ```{r Number R Team Members, echo = TRUE}
 team_num_survey <- survey %>% filter(!is.na(learner_type))
-ggplot(team_num_survey, aes(x = Qteam_r_users, group = learner_type)) +
-  geom_density(aes(fill = learner_type), color="black", alpha = 0.5) +
-  scale_x_continuous(trans = "log10") +
-  scale_fill_brewer(palette = "Set1") +
+
+ggplot(team_num_survey, aes(x = learner_type, y = Qteam_r_users, group = learner_type)) +
+  geom_violin(aes(color = learner_type), width = 0.5) +
+  geom_jitter(aes(color = learner_type), alpha = 0.1, width = 0.02) +
+  scale_y_continuous(trans = "log10") +
+  scale_color_brewer(palette = "Dark2") +
   labs(title = "Number of Team Members Who Know R (Density Plot)", 
-       subtitle = question_text("Qteam_r_users"),
-       caption = "2018 RStudio Learning R Survey",
-       x="Number", y="Density", fill = "Learner Type")
+       subtitle = question_text("Qteam_r_users", 50),
+       caption = survey_name,
+       x="Learner Type", y="# Team Members", color = "Learner Type")
+
 ```
 
 ## Difficulty of Learning R based on Learner Type
@@ -540,6 +583,7 @@ ss <- survey %>% filter(!is.na(learner_type) & !is.na(Qr_difficulty_experienced)
 ss_grouped <- ss %>% 
   group_by(learner_type, Qr_difficulty_experienced) %>% 
   count(Qr_difficulty_experienced)
+
 ggplot(ss) +
   geom_bar(aes(x = Qr_difficulty_experienced, y = ..prop.., fill = learner_type, group = learner_type),
            position = position_dodge(width = 0.5),
@@ -547,9 +591,9 @@ ggplot(ss) +
   scale_y_continuous(labels = scales::percent) +
   scale_fill_brewer(palette = "Set1") +
   labs(title = "Difficulty in Learning R", 
-       subtitle = question_text("Qr_difficulty_experienced"),
-       caption = "2018 RStudio Learning R Survey",
- x="Respondent Rating (5 = Most Difficult)", y="", fill = "Learner Type")
+       subtitle = question_text("Qr_difficulty_experienced", 72),
+       caption = survey_name,
+       x="Respondent Rating (5 = Most Difficult)", y="", fill = "Learner Type")
 ```
 
 ## What is R Used For?
@@ -569,20 +613,24 @@ other <- tail(tools_used, -15) %>%
             n = sum(n), 
             percent = round(n / use_responses$responses * 100))
 
-app_plot2 <- rbind(other, app_plot) %>% drop_na()
-app_plot2 <- app_plot2 %>% 
+app_plot <- rbind(other, app_plot) %>% drop_na()
+app_plot <- app_plot %>% 
   mutate(application = factor(as.character(application), levels = application))
 
-ggplot(app_plot2) +
+ggplot(app_plot) +
   geom_col(aes(x=application, y = percent),
            fill =  params$bar_colors) +
   geom_text(aes(x=application, y = percent / 2, label = paste0(percent, "%")), 
             color="gray80", size=3, nudge_y = 1) +
   labs(title = "What Do You Use R For?", 
        subtitle = question_text("Qused_for"),
-       caption = "2018 RStudio Learning R Survey",
-x="Application", y="Percent") +
-  coord_flip()
+       caption = paste0(survey_name, ", n = ", use_responses$responses),
+       x="", y="") +
+  coord_flip() +
+    theme(axis.line = element_blank(),
+        axis.text.x = element_blank(),
+        axis.ticks = element_blank())
+
 
 ```
 
@@ -605,7 +653,7 @@ ggplot(recommend_scores) +
   scale_x_continuous(breaks = 1:10) +
     labs(title = question_text("Qrecommend"),
        subtitle = sprintf("Net Promoter Score = %s,        Rating: %s", nps, npr),
-       caption = "2018 RStudio Learning R Survey",
+       caption = paste0(survey_name, ", n = ", responses),
        x="Score", y="Count")
 ```
 
@@ -623,20 +671,12 @@ top_15_items <- top_n_choices(tools_used, items, num_tool_responses, 15) %>% arr
 top_15_items <- top_15_items %>%
   mutate(items = factor(as.character(items), levels = items))
 
-# Plot
-ggplot(top_15_items) +
-  geom_col(aes(x=items, y = percent),
-           fill =  params$bar_colors) +
-  geom_text(aes(x=items, y = percent , label = paste0(percent, "%")), 
-            color="gray30", size=3, nudge_y = 3) +
-  labs(title = "What Tools Do You Use With R?", 
-       subtitle = question_text("Qtools_with_r", 55),
-       caption = "2018 RStudio Learning R Survey",
-       x="", y="") +
-  coord_flip() +
-  theme(axis.line = element_blank(),
-        axis.text.x = element_blank(),
-        axis.ticks = element_blank())
+bar_chart(top_15_items, 
+          column_name = items, 
+          fill_color = params$bar_colors, 
+          title_string = "What Tools Do You Use With R?",
+          subtitle_string = question_text("Qtools_with_r"),
+          caption_string = paste0(survey_name, ", n = ", num_tool_responses))
 
 ```
 
