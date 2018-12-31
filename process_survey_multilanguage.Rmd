@@ -98,17 +98,66 @@ top_n_choices <- function(df, column_name, total_responses, num = 10) {
   return(top_n)
 }
 
-question_text <- function(question_name_string)
+question_text <- function(question_name_string, wrap_length = 55)
 {
    question_text <- survey_questions %>% filter(Question_name == question_name_string) %>% select(Question_text)
-   if (length(question_text$Question_text) >= 55) {
-     return_text <- question_text$Question_text %>% str_wrap(width = 50)
+   if (str_length(question_text$Question_text) >= wrap_length) {
+     return_text <- question_text$Question_text %>% str_wrap(width = wrap_length - 5)
    } else {
      return_text <- question_text$Question_text
    }
    return(paste0('"', return_text, '"'))
 }
 
+## Plot a pie chart from a single response question. The call form is a little baroque, so here's an example
+## to illustrate the mapping of values to arguments.
+##     pie_chart(df = ethnicities, 
+##               column_name            = Qethnicity_coded, 
+##               original_column_string = "Qethnicity",
+##               text_position          = position        ## the name of the position column in the df
+##               title_string           = "Ethnicities", 
+##               fill_legend_title      = "Respondent Ethnicity"
+##               colors                 = "Set1"         From the RColorBrewer palettes
+
+pie_chart <- function(df, 
+                      column_name, 
+                      original_column_string, 
+                      text_position,
+                      title_string, 
+                      fill_legend_title, 
+                      colors ) {
+  quoted_column_name <- enquo(column_name)
+  quoted_position <- enquo(text_position)
+  p <- ggplot(df) +
+    geom_col(aes(x = 1, y = percent, fill = !!quoted_column_name), 
+             width = 1, size = 1, color = "gray90", alpha = 0.4) +
+    geom_text(aes(x = 1.2, y = !!quoted_position, label = label),
+                    size = 3,
+                    hjust = 0.4,
+                    color = "black"
+     ) +
+    labs(x = NULL, y = NULL, 
+         title = title_string,
+         subtitle = question_text(original_column_string),
+         caption = "2018 RStudio Learning R Survey",
+         fill = fill_legend_title) +
+    guides(fill = guide_legend()) +
+    scale_fill_brewer(palette = colors) +
+    #   scale_fill_viridis_d("Ethnicities", option = "A", direction = -1, alpha = 0.4) +
+    theme(legend.key.width=unit(1, "cm")) +
+    theme_classic() +
+    coord_polar("y") +
+    #    coord_flip() +
+    theme(axis.line = element_blank(),
+          axis.text = element_blank(),
+          axis.ticks = element_blank())
+  print(p)
+}
+
+```
+
+
+```{r read in survey, include = FALSE}
 ##############################################################
 ### This section begins the mainline code to read the survey #
 ##############################################################
@@ -187,11 +236,16 @@ ethnicity_dictionary <- opentext_ethnicity_dictionary %>%
 survey <- survey %>% 
   mutate(Qethnicity_processed = ifelse(str_detect(Qethnicity, ","), "Multiple Ethnicities", Qethnicity))
 survey$Qethnicity_processed <- survey$Qethnicity_processed %>% tolower() %>% str_trim() %>% str_replace_all("[[:punct:]]", "")
-survey <- survey %>% left_join(ethnicity_dictionary, by=c("Qethnicity_processed" = "Input"))
-survey <- survey %>% mutate(Qethnicity_coded = ifelse(Qethnicity_coded == "Prefer not to answer", NA, Qethnicity_coded))
+survey <- survey %>% 
+  left_join(ethnicity_dictionary, by=c("Qethnicity_processed" = "Input"))
+uncoded_ethnicities <-survey %>% 
+  anti_join(ethnicity_dictionary, by=c("Qethnicity_processed" = "Input")) %>% 
+  count(Qethnicity_processed, sort = TRUE) 
+survey <- survey %>% 
+  mutate(Qethnicity_coded = ifelse(Qethnicity_coded == "Prefer not to answer",
+                                   NA, 
+                                   Qethnicity_coded))
 collected_ethnicities <- survey %>% group_by(Qethnicity_coded) %>% count(sort = TRUE)
-write_csv(collected_ethnicities %>% select(Qethnicity_coded), "data/collected_ethnicities_english.csv")
-
 theme_set(theme_classic())
 
 ```
@@ -232,26 +286,37 @@ genders <- survey %>%
 gender_responses <- sum(genders$n, na.rm = TRUE)
 genders <- genders %>% 
   group_by(unit) %>% 
-  mutate(percent = round(n / gender_responses * 100),
+         mutate(percent = round(n / gender_responses * 100),
          position = cumsum(percent) - percent / 2,
-         label = ifelse(percent >= 10, paste0(percent, "%"), "")) %>% 
+         label = ifelse(percent >= 10, paste0(Qgender_coded, "\n", round(percent), "%"), "")) %>% 
   arrange(desc(percent))
+genders <- genders %>% 
+  mutate(Qgender_coded = factor(as.character(Qgender_coded), levels = c("female", "male", "sex and gender diverse", "unclear")))
+    
+pie_chart(df                 = genders,
+          column_name        = Qgender_coded,
+          original_column_string = "Qgender",
+          text_position          = position,
+          title_string           = "Respondent Gender",
+          fill_legend_title      = "Gender",
+          colors                 = "Set1")
 
-ggplot(genders, aes(x = "", y = percent, fill = Qgender_coded)) +
-    geom_bar(width = 1, size = 1, color = "gray90", stat = "identity", alpha = 0.7) +
-    coord_polar("y") +
-    geom_text(aes(label = paste0(round(percent), "%")), 
-              position = position_stack(vjust = 0.5)) +
-    labs(x = NULL, y = NULL, fill = NULL, 
-         title = "Respondent Gender", 
-         subtitle = question_text("Qgender"), 
-         caption = "2018 RStudio Learning R Survey") +
-    guides(fill = guide_legend()) +
-    scale_fill_brewer(palette = "Set1") +
-    theme_classic() +
-    theme(axis.line = element_blank(),
-          axis.text = element_blank(),
-          axis.ticks = element_blank())
+# ggplot(genders, aes(x = "", y = percent, fill = Qgender_coded)) +
+#     geom_bar(width = 1, size = 1, color = "gray90", stat = "identity", alpha = 0.7) +
+#     coord_polar("y") +
+#     geom_text(aes(label = paste0(round(percent), "%")), 
+#               position = position_stack(vjust = 0.5)) +
+#     labs(x = NULL, y = NULL, fill = NULL, 
+#          title = "Respondent Gender", 
+#          subtitle = question_text("Qgender"), 
+#          caption = "2018 RStudio Learning R Survey") +
+#     guides(fill = guide_legend()) +
+#     scale_fill_brewer(palette = "Set1") +
+#     theme_classic() +
+#     theme(axis.line = element_blank(),
+#           axis.text = element_blank(),
+#           axis.ticks = element_blank())
+
 ```
 
 ## Respondent Countries
@@ -312,29 +377,17 @@ top_10_industries <- top_10_industries %>%
          position = cumsum(percent) - percent / 2,
          label = ifelse(percent >= 5, paste0(short_industry, "\n", round(percent), "%"), ""))
 
-ggplot(top_10_industries) +
-    geom_col(aes(x = 1, y = percent, fill = Qindustry), 
-             width = 1, size = 1, color = "gray90") +
-    geom_text(aes(x = 1.2, y = 100 - position, label = label),
-              size = 3,
-              hjust = 0.4,
-              color = "black"
-#              direction = "both",
-    ) +
-    labs(x = NULL, y = NULL, 
-         title = "Respondent Industry",
-         subtitle = question_text("Qindustry"),
-         caption = "2018 RStudio Learning R Survey") +
-    guides(fill = guide_legend()) +
-    scale_fill_viridis_d("Industry", option = "B", direction = 1, alpha = 0.4) +
-    theme(legend.key.width=unit(1, "cm")) +
-    theme_classic() +
-    coord_polar("y") +
-    theme(axis.line = element_blank(),
-         axis.text = element_blank(),
-         axis.ticks = element_blank())
+
+pie_chart(df                 = top_10_industries,
+          column_name        = Qindustry,
+          original_column_string = "Qindustry",
+          text_position          = 100 - position,
+          title_string           = "Respondent Industry",
+          fill_legend_title      = "",
+          colors                 = "Set3")
 
 ```
+
 ## Ethnicity
 
 ```{r Ethnicity, echo = TRUE}
@@ -347,14 +400,16 @@ num_ethnicity_responses <- sum(!is.na(survey$Qethnicity_coded))
 ethnicities <- ethnicities %>% 
   mutate(percent = round(n / num_ethnicity_responses * 100, 0)) %>%
   ungroup() %>% 
-  drop_na()
+  drop_na() %>% 
+  arrange(desc(percent))
 
 ethnicities <- ethnicities %>% 
- mutate(Qethnicity_coded = factor(Qethnicity_coded, levels = Qethnicity_coded),
+ mutate(Qethnicity_coded = factor(as.character(Qethnicity_coded), levels = Qethnicity_coded),
          position = cumsum(percent) - percent / 2,
          label = ifelse(percent >= 2, paste0(Qethnicity_coded, "\n", round(percent), "%"), ""))
 
-# Plot
+## Another customized pie chart here to use repelled labels to show small minority groups
+
 ggplot(ethnicities) +
     geom_col(aes(x = 1, y = percent, fill = Qethnicity_coded), 
              width = 1, size = 1, color = "gray90", alpha = 0.4) +
@@ -399,33 +454,41 @@ r_experience <- r_experience %>%
          position = cumsum(percent) - percent / 2,
          label = ifelse(percent >= 2, paste0(Qr_experience, "\n", round(percent), "%"), ""))
 
+pie_chart(df                 = r_experience,
+          column_name        = Qr_experience_factor,
+          original_column_string = "Qr_experience",
+          text_position          = 100 - position,
+          title_string           = "R Experience",
+          fill_legend_title      = "",
+          colors                 = "Set1")
 
-# Plot
-ggplot(r_experience) +
-    geom_col(aes(x = 1, y = percent, fill = Qr_experience_factor), 
-             width = 1, size = 1, color = "gray90", alpha = 0.4) +
-    geom_text_repel(aes(x = 1.2, y = 100 - position, label = label),
-              size = 3,
-              hjust = 0.4,
-              color = "black",
-              direction = "y",
-              force = 0.8
-    ) +
-    labs(x = NULL, y = NULL, 
-         title = "R Experience",
-         subtitle = question_text("Qr_experience"),
-         caption = "2018 RStudio Learning R Survey",
-         fill = "Level of Experience") +
-    guides(fill = guide_legend()) +
-    scale_fill_brewer(palette = "Set1") +
-#   scale_fill_viridis_d("Ethnicities", option = "A", direction = -1, alpha = 0.4) +
-    theme(legend.key.width=unit(1, "cm")) +
-    theme_classic() +
-   coord_polar("y") +
-#    coord_flip() +
-    theme(axis.line = element_blank(),
-         axis.text = element_blank(),
-         axis.ticks = element_blank())
+```
+
+## How Did You Learn R?
+
+```{r How Did You Learn R, echo = TRUE}
+# We shorten down the given answers while categorizing open-text answers given for "Other"
+# Just as we did for the gender and industry questions, we use small dictionary to do this
+# However, because commas may appear in the open text respones, we'll use a tsv file instead of a csv one.
+
+r_path_dictionary <- read_delim("data/r-path-dictionary.tsv", delim = "\t")
+r_paths <- survey %>% select(Qr_learning_path) %>% left_join(r_path_dictionary, c("Qr_learning_path" = "Input"))
+r_path_results <- tally_question(r_paths, Output, rm.na = TRUE, sort = TRUE)
+answer_table <- r_path %>% select(Qr_learning_path, n)
+# write_delim(answer_table, "data/r-path-dictionary.tsv", delim="\t")
+
+r_path_results <- r_path_results %>% 
+ mutate(Output = factor(Output, levels = Output),
+         position = cumsum(percent) - percent / 2,
+         label = ifelse(percent >= 2, paste0(Output, "\n", round(percent), "%"), ""))
+
+pie_chart(df                 = r_path_results,
+          column_name        = Output,
+          original_column_string = "Qr_learning_path",
+          text_position          = 100 - position,
+          title_string           = "R Learning Path",
+          fill_legend_title      = "",
+          colors                 = "Set2")
 
 ```
 
@@ -498,18 +561,23 @@ tools_used <- uses %>% unnest() %>% group_by(application) %>% count(sort=TRUE)
 # Count the non-NA entries now
 use_responses <- survey %>% summarize(responses = sum(!is.na(Qused_for)))
 tools_used <- tools_used %>% mutate(percent = round(n / use_responses$responses * 100)) %>% arrange(desc(percent))
-app_plot <- head(tools_used, 15) %>% ungroup()
+app_plot <- head(tools_used, 15) %>% ungroup() %>% arrange(percent)
+
 other <- tail(tools_used, -15) %>% 
   ungroup() %>% 
   summarize(application = "Other", 
             n = sum(n), 
             percent = round(n / use_responses$responses * 100))
-app_plot <- rbind(app_plot, other) %>% drop_na()
-ggplot(app_plot) +
-  geom_col(aes(x=reorder(application, percent), y = percent),
+
+app_plot2 <- rbind(other, app_plot) %>% drop_na()
+app_plot2 <- app_plot2 %>% 
+  mutate(application = factor(as.character(application), levels = application))
+
+ggplot(app_plot2) +
+  geom_col(aes(x=application, y = percent),
            fill =  params$bar_colors) +
-  geom_text(aes(x=reorder(application, percent), y = percent / 2 + 1, label = paste0(percent, "%")), 
-            color="gray80", size=3) +
+  geom_text(aes(x=application, y = percent / 2, label = paste0(percent, "%")), 
+            color="gray80", size=3, nudge_y = 1) +
   labs(title = "What Do You Use R For?", 
        subtitle = question_text("Qused_for"),
        caption = "2018 RStudio Learning R Survey",
@@ -521,6 +589,7 @@ x="Application", y="Percent") +
 ## Net Promoter Score
 
 ```{r Net Promoter Score, echo = TRUE}
+
 recommend_totals <-survey %>% group_by(Qrecommend) %>% tally()
 responses <- sum(recommend_totals$n, na.rm = TRUE)
 recommend_totals <- recommend_totals %>% mutate(percent = n / responses * 100)
@@ -531,8 +600,8 @@ npr <- nps %>% cut(breaks = c(-100, 0, 50, 75, 100), labels = c("Dangerous", "Go
 
 ggplot(recommend_scores) +
   geom_col(aes(x = Qrecommend, y = percent), fill = params$bar_colors, color="black") +
-  geom_text(aes(x = Qrecommend, y = percent + 3, label = paste0(round(percent), "%")), 
-            color="black", size=3) +
+  geom_text(aes(x = Qrecommend, y = percent, label = paste0(round(percent), "%")), 
+            color="black", size=3, nudge_y = 3) +
   scale_x_continuous(breaks = 1:10) +
     labs(title = question_text("Qrecommend"),
        subtitle = sprintf("Net Promoter Score = %s,        Rating: %s", nps, npr),
@@ -550,19 +619,24 @@ tools_used <- split_and_aggregate(uses, tools)
 tools_used <- tools_used %>% 
   select(-num_responses) %>% 
   mutate(percent = round(n / num_tool_responses * 100))
-top_15_items <- top_n_choices(tools_used, items, num_tool_responses, 15)
+top_15_items <- top_n_choices(tools_used, items, num_tool_responses, 15) %>% arrange(percent)
+top_15_items <- top_15_items %>%
+  mutate(items = factor(as.character(items), levels = items))
 
 # Plot
 ggplot(top_15_items) +
-  geom_col(aes(x=reorder(items, percent), y = percent),
+  geom_col(aes(x=items, y = percent),
            fill =  params$bar_colors) +
-  geom_text(aes(x=reorder(items, percent), y = percent / 2, label = paste0(percent, "%")), 
-            color="gray80", size=3) +
+  geom_text(aes(x=items, y = percent , label = paste0(percent, "%")), 
+            color="gray30", size=3, nudge_y = 3) +
   labs(title = "What Tools Do You Use With R?", 
-       subtitle = question_text("Qtools_with_r"),
+       subtitle = question_text("Qtools_with_r", 55),
        caption = "2018 RStudio Learning R Survey",
-       x="Tool", y="Percent") +
-  coord_flip()
+       x="", y="") +
+  coord_flip() +
+  theme(axis.line = element_blank(),
+        axis.text.x = element_blank(),
+        axis.ticks = element_blank())
 
 ```
 
