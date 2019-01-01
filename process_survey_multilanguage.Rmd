@@ -134,7 +134,7 @@ pie_chart <- function(df,
   p <- ggplot(df) +
     geom_col(aes(x = 1, y = percent, fill = !!quoted_column_name), 
              width = 1, size = 1, color = "gray90", alpha = 0.4) +
-    geom_text(aes(x = 1.2, y = !!quoted_position, label = label),
+    geom_text(aes(x = 1.22, y = !!quoted_position, label = label),
                     size = 3,
                     hjust = 0.4,
                     color = "black"
@@ -176,14 +176,14 @@ bar_chart <- function(df,
                      caption_string = survey_name) {
   
   quoted_column <- enquo(column_name)
-  
+  nudge_amount <- max(df$percent, rm.na = TRUE) * 0.05
   p <- ggplot(df) +
     geom_col(aes(x = !!quoted_column, y = percent),
              fill =  fill_color) +
     geom_text(aes(x = !!quoted_column, y = percent , 
                   label = paste0(percent, "%")), 
-              color="gray30", size=3, nudge_y = 4) +
-    labs(title = "What Tools Do You Use With R?", 
+              color="gray30", size=3, nudge_y = nudge_amount) +
+    labs(title = title_string, 
          subtitle = subtitle_string,
          caption = caption_string,
          x="", y="") +
@@ -428,21 +428,23 @@ ethnicities <- ethnicities %>%
   arrange(desc(percent))
 
 ethnicities <- ethnicities %>% 
- mutate(Qethnicity_coded = factor(as.character(Qethnicity_coded), levels = Qethnicity_coded),
-         position = cumsum(percent) - percent / 2,
-         label = ifelse(percent >= 2, paste0(Qethnicity_coded, "\n", round(percent), "%"), ""))
+ mutate(unit = 1,
+        Qethnicity_coded = factor(as.character(Qethnicity_coded), levels = Qethnicity_coded),
+        position = cumsum(percent) - percent / 2,
+        x_position = cumsum(unit) %% 3 * 0.06 + (1 - 0.06),
+        label = ifelse(percent >= 2, paste0(Qethnicity_coded, "\n", round(percent), "%"), ""))
 
 ## Another customized pie chart here to use repelled labels to show small minority groups
 
 ggplot(ethnicities) +
     geom_col(aes(x = 1, y = percent, fill = Qethnicity_coded), 
-             width = 1, size = 1, color = "gray90", alpha = 0.4) +
-    geom_text_repel(aes(x = 1.2, y = 100 - position, label = label),
+             width = 0.2, size = 1, color = "gray90", alpha = 0.4) +
+    geom_text(aes(x = x_position, y = 100 - position, label = label),
               size = 3,
               hjust = 0.4,
               color = "black",
-              direction = "y",
-              force = 0.8
+#              direction = "y",
+#              force = 0.8
     ) +
     labs(x = NULL, y = NULL, 
          title = "Respondent Ethnicities",
@@ -450,19 +452,201 @@ ggplot(ethnicities) +
          caption = paste0(survey_name, ", n = ", num_ethnicity_responses),
          fill = "Selected Ethnicity") +
     guides(fill = guide_legend()) +
+    scale_x_continuous(limits = c(0.75, 1.25)) +
     scale_fill_brewer(palette = "Set1") +
 #   scale_fill_viridis_d("Ethnicities", option = "A", direction = -1, alpha = 0.4) +
     theme(legend.key.width=unit(1, "cm")) +
     theme_classic() +
-   coord_polar("y") +
-#    coord_flip() +
+#   coord_polar("y") +
+    coord_flip() +
     theme(axis.line = element_blank(),
          axis.text = element_blank(),
          axis.ticks = element_blank())
 
 ```
 
+## Education Level
+
+```{r Education level, echo = TRUE}
+
+r_education_dictionary <- read_delim("data/education-dictionary.tsv", delim = "\t")
+r_education <- survey %>% select(Qdegree) %>% 
+  drop_na() %>% 
+  left_join(r_education_dictionary, c("Qdegree" = "Input"))
+r_education_exceptions <- survey %>% select(Qdegree) %>% 
+  drop_na() %>% 
+  anti_join(r_education_dictionary, c("Qdegree" = "Input"))
+r_education_results <- tally_question(r_education, Output, rm.na = TRUE, sort = TRUE)
+# answer_table <- r_paths %>% select(Qr_learning_path, n)
+# write_delim(answer_table, "data/r-path-dictionary.tsv", delim="\t")
+r_education_responses <- first(r_education_results$nn)
+
+r_education_results <- r_education_results %>% 
+ mutate(Output = factor(Output, levels = rev(Output)),
+         position = cumsum(percent) - percent / 2,
+         label = ifelse(percent >= 2, paste0(Output, "\n", round(percent), "%"), ""))
+
+bar_chart(df                     = r_education_results,
+          column_name            = Output,
+          fill_color             = params$bar_colors,
+          title_string           = "Respondent Education Levels",
+          subtitle_string        = question_text("Qdegree"),
+          caption_string         = paste0(survey_name, ", n = ", r_education_responses)
+)
+```
+
+## Job Title
+
+```{r Job title, echo = TRUE}
+job_title_dictionary <- read_delim("data/work-title-dictionary.tsv", delim = "\t")
+job_titles <- survey %>% select(Qwork_title) %>% 
+  drop_na() %>% 
+  left_join(job_title_dictionary, c("Qwork_title" = "Input"))
+job_title_exceptions <- survey %>% select(Qwork_title) %>% 
+  drop_na() %>% 
+  anti_join(job_title_dictionary, c("Qwork_title" = "Input"))
+
+job_title_totals <- job_titles %>% count(Output, sort = TRUE)
+job_title_responses <- sum(!is.na(survey$Qwork_title))
+job_titles <- job_title_totals %>% mutate(percent = round(n / job_title_responses * 100, 0))
+
+top_10_titles <- top_n_choices(job_titles, Output, job_title_responses, 10)
+
+top_10_titles <- top_10_titles %>% 
+  mutate(JobTitle = factor(Output, levels = rev(Output)),
+         position = cumsum(percent) - percent / 2,
+         label = ifelse(percent >= 5, paste0(JobTitle, "\n", round(percent), "%"), ""))
+
+bar_chart (df = top_10_titles,
+          column_name = JobTitle,
+          fill_color = params$bar_colors,
+          title_string           = "Respondent Job Title",
+          subtitle_string        = question_text("Qwork_title"),
+          caption_string         = paste0("RStudio Learning R Survey, n = ",job_title_responses))
+```
+
+## Languages Used Prior To R
+
+```{r Languages Used Prior To Learning R, echo = TRUE}
+
+languages <- survey %>% select(Qlanguages)
+num_language_responses <- sum(!is.na(languages$Qlanguages))
+languages_used <- split_and_aggregate(languages, Qlanguages)
+languages_used <- languages_used %>% 
+  select(-num_responses) %>% 
+  mutate(percent = round(n / num_language_responses * 100))
+top_15_items <- top_n_choices(languages_used, items, num_language_responses, 15) %>% arrange(percent)
+top_15_items <- top_15_items %>%
+  mutate(items = factor(as.character(items), levels = items))
+
+bar_chart(top_15_items, 
+          column_name = items, 
+          fill_color = params$bar_colors, 
+          title_string = "What Languages Do You Use With R?",
+          subtitle_string = question_text("Qlanguages"),
+          caption_string = paste0(survey_name, ", n = ", num_tool_responses))
+
+```
+
+## First Language Learned
+
+```{r First Language or Tool Learned, echo = TRUE}
+
+fl <- survey %>%
+  transmute(Input = tolower(Qfirst_language),
+            Output = Qfirst_language)
+
+fl <- fl %>% mutate(Output = ifelse(str_detect(Input, "basic"), "Basic", Output),
+                    Output = ifelse(str_detect(Input, "fortran"), "Fortran", Output),
+                    Output = ifelse(str_detect(Input, "cobol"), "Cobol", Output),
+                    Output = ifelse(str_detect(Input, "algol"), "Algol", Output),
+                    Output = ifelse(str_detect(Input, "sql"), "SQL", Output),
+                    Output = ifelse(str_detect(Input, "html"), "HTML", Output),
+                    Output = ifelse(str_detect(Input, "pascal"), "Pascal", Output),
+                    Output = ifelse(str_detect(Input, "stata"), "Stata", Output),
+                    Output = ifelse(str_detect(Input, "dbase"), "DBase", Output),
+                    Output = ifelse(str_detect(Input, "just getting started"), "Just starting programming", Output),
+                    Output = ifelse(str_detect(Input, "bash"), "Bash", Output))
+
+# Honestly, the rest of the answers aren't significant, but you can check using the following
+# write_delim(fl_tallies, "data/first-language-dictionary.tsv", delim="\t")
+                   
+fl_tallies <- fl %>% count(Output, sort = TRUE)
+num_first_language_responses <- sum(!is.na(fl$Output))
+top_15_languages <- top_n_choices(fl_tallies, Output, num_first_language_responses, 15) %>% 
+  mutate(Output = factor(Output, levels = rev(Output)))
+
+bar_chart(top_15_languages, 
+          column_name = Output, 
+          fill_color = params$bar_colors, 
+          title_string = "First Language or Tool Learned",
+          subtitle_string = question_text("Qfirst_language"),
+          caption_string = paste0(survey_name, ", n = ", num_first_language_responses))
+```
+
 # Learning Questions
+
+## R Difficulty
+
+```{r Difficulty Learning R Experienced, echo = TRUE}
+
+r_difficulty <- tally_question(survey, Qr_difficulty_experienced, rm.na = TRUE, sort = FALSE)
+diff_responses <- first(r_difficulty$nn)
+mean_difficulty = round(mean(survey$Qr_difficulty_experienced, na.rm = TRUE), 1)
+
+r_difficulty <- r_difficulty %>%
+  mutate(percent = percent / 100)      # the plot below uses a percent y axis
+
+ggplot(r_difficulty) +
+  geom_bar(aes(x = Qr_difficulty_experienced, y = percent),
+           stat = "identity",
+           color = params$bar_colors,
+           fill = params$bar_colors,
+           width = 0.5,
+           alpha = 0.5) +
+  geom_text(aes(x = Qr_difficulty_experienced, y = percent,
+                label = paste0(round(percent * 100), "%")),
+                color = "gray30",
+                nudge_y = .03) +
+  annotate("text", x = 2, y = 0.4, label = paste0("Mean value = ", mean_difficulty)) +
+  scale_y_continuous(labels = scales::percent) +
+  labs(title = "Difficulty in Learning R", 
+       subtitle = question_text("Qr_difficulty_experienced", 72),
+       caption = paste0(survey_name, ", n = ", diff_responses),
+       x="Respondent Rating (1 = Easiest, 5 = Most Difficult)", y="")
+```
+## Time To R Proficiency
+
+```{r Time to proficiency, echo = TRUE}
+
+r_proficiency <- tally_question(survey, Qtime_to_proficiency, rm.na = TRUE, sort = TRUE)
+r_proficiency <- r_proficiency %>% 
+  mutate(Qtime_to_proficiency = factor(Qtime_to_proficiency, levels = rev(Qtime_to_proficiency)))
+
+bar_chart(df                 = r_proficiency,
+          column_name        = Qtime_to_proficiency,
+          title_string           = "Time To Achieve Proficiency In R",
+          subtitle_string        = question_text("Qtime_to_proficiency", 70),
+          caption_string         = paste0("RStudio Learning R Survey, n = ",first(r_proficiency$nn)),
+          fill_color             = params$bar_colors)
+
+```
+## Reason Why Learned R
+
+```{r Why Learned R, echo = TRUE}
+
+r_why <- tally_question(survey, Qr_reason_experienced, rm.na = TRUE, sort = TRUE)
+r_why <- r_why %>% 
+  mutate(Qr_reason_experienced = factor(Qr_reason_experienced, levels = rev(Qr_reason_experienced)))
+
+bar_chart(df                 = r_why,
+          column_name        = Qr_reason_experienced,
+          title_string           = "Reason To Learn R",
+          subtitle_string        = question_text("Qr_reason_experienced", 40),
+          caption_string         = paste0("RStudio Learning R Survey, n = ",first(r_why$nn)),
+          fill_color             = params$bar_colors)
+
+```
 
 ## What is Your Experience with R?
 
@@ -604,7 +788,9 @@ uses <- survey %>% mutate(application = purrr::map(Qused_for, str_split, ", ")) 
 tools_used <- uses %>% unnest() %>% group_by(application) %>% count(sort=TRUE)
 # Count the non-NA entries now
 use_responses <- survey %>% summarize(responses = sum(!is.na(Qused_for)))
-tools_used <- tools_used %>% mutate(percent = round(n / use_responses$responses * 100)) %>% arrange(desc(percent))
+tools_used <- tools_used %>% 
+  mutate(percent = round(n / use_responses$responses * 100)) %>% 
+  arrange(desc(percent))
 app_plot <- head(tools_used, 15) %>% ungroup() %>% arrange(percent)
 
 other <- tail(tools_used, -15) %>% 
