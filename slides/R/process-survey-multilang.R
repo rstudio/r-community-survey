@@ -17,6 +17,9 @@ library(here)
 ### This section begins the mainline code to read the survey #
 ##############################################################
 
+# For xaringan slides, we'll output the processed data to a tsv file at this path:
+survey_tsv_path <- here::here("slides/data", paste0("survey_", language,".tsv"))
+
 # First, we'll just read in the data and fix all the question names, which in Google Forms, are literally
 # the full text of the question. I've put short question names on another sheet of the results Google Sheet, so
 # we do the substitution here.
@@ -96,8 +99,38 @@ survey <- genderRecode(survey, method = "narrow",
                        genderColName = "Qgender",
                        outputColName = "Qgender_coded",
                        customDictionary = opentext_gender_dictionary)
-write_csv(survey, here::here("slides/data", paste0("survey_", language,".csv")))
+
 
 # explore coded/uncoded genders
 uncoded_genders <- survey %>% group_by(Qgender_coded) %>% count(sort = TRUE)
 # write_csv(uncoded_genders, here::here("slides/data", "uncoded_genders_language.csv"))
+
+# This codes the ethnicity question for further analysis
+# We recognize that this is both an offensive question to some and an imperfect classification
+# Its purpose is to simply measure how diverse our community is. Our rationale is that if
+# we do not attempt to measure the R community's diversity, then our claims of community diversity
+# are meaningless because our only measurements are anecdotal.
+
+opentext_ethnicity_dictionary <- read_csv("data/opentext_ethnicity_dictionary.csv")
+ethnicity_dictionary <- opentext_ethnicity_dictionary %>%  
+  mutate(Input = str_replace_all(Input, "[[:punct:]]", ""))
+
+# Yes, I know this will cause false categorizations of open-ended responses with commas as Multiple Ethnicities
+# That said, I can't see an obvious other way to detect multiple ethnicities beyond the dictionary matches below
+
+survey <- survey %>% 
+  mutate(Qethnicity_processed = ifelse(str_detect(Qethnicity, ","), "Multiple Ethnicities", Qethnicity))
+survey$Qethnicity_processed <- survey$Qethnicity_processed %>% tolower() %>% str_trim() %>% str_replace_all("[[:punct:]]", "")
+survey <- survey %>% 
+  left_join(ethnicity_dictionary, by=c("Qethnicity_processed" = "Input"))
+uncoded_ethnicities <-survey %>% 
+  anti_join(ethnicity_dictionary, by=c("Qethnicity_processed" = "Input")) %>% 
+  count(Qethnicity_processed, sort = TRUE) 
+survey <- survey %>% 
+  mutate(Qethnicity_coded = ifelse(Qethnicity_coded == "Prefer not to answer",
+                                   NA, 
+                                   Qethnicity_coded))
+collected_ethnicities <- survey %>% group_by(Qethnicity_coded) %>% count(sort = TRUE)
+
+
+write_tsv(survey, survey_tsv_path)
