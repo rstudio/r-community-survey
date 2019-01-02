@@ -17,7 +17,7 @@
 /* in line code */
 
 .remark-code, .remark-inline-code {
-  color: #F9388C;
+  background-color: #c8c8c8;
 }
 
 .inverse .remark-inline-code {
@@ -41,7 +41,7 @@ a:focus {
 }
 
 a > code {
-  color: #F9388C;
+  color: rgb(249, 38, 114);
   text-decoration: none;
 }
 

@@ -276,7 +276,6 @@ chop_and_prop <- function(df, question_name, num_items = 15) {
   chops <- df %>% 
     mutate(items = str_remove(!!quoted_question, "i.e., ")) %>% 
     tidyr::separate_rows(items, sep = ", ") %>% 
-    #mutate(items = if_else(str_length(items) >= 4, str_to_title(items), items)) %>% 
     mutate(items = forcats::fct_lump(as.factor(items), n = num_items))
   prop_items <- chops %>% 
     count(items, sort = TRUE) %>% 
@@ -745,43 +744,16 @@ x="Application", y="Percent") +
 
 
 ---
-name: alison-forcats
-
-# What is R used for?
-
-```{r r-used-for2}
-use_responses <- survey %>% 
-  summarize(responses = sum(!is.na(Qused_for))) %>% 
-  pull()
-
-used_for <- survey %>% 
-  separate_rows(Qused_for, sep = ", ") %>% 
-  mutate(Qused_for = str_to_title(Qused_for),
-         Qused_fct = fct_lump(as.factor(Qused_for), n = 15)) %>% 
-  count(Qused_fct, sort = TRUE) %>% 
-  drop_na(Qused_fct) %>%
-  mutate(prop_used = n / use_responses)
-
-ggplot(used_for, aes(x = fct_reorder(Qused_fct, prop_used), 
-                     y = prop_used)) +
-  geom_col(fill =  params$bar_colors) +
-  geom_text(aes(label = scales::percent(prop_used)), hjust = -.25, color="black", size=3) +
-  labs(title = question_text("Qused_for"),
-       caption = "2018 RStudio Learning R Survey",
-       x="Application", 
-       y="") +
-  coord_flip() +
-  scale_y_continuous(labels = scales::percent, limits = c(0, .95)) 
-
-```
-
----
 name: alison-r-used-for
 
 # What is R used for?
 
 ```{r alison-r-used-for}
-used_for <- chop_and_prop(survey, Qused_for, num_items = 14) 
+survey_used <- survey %>% 
+  mutate(Qused_for = if_else(Qused_for == "GIS", 
+                             Qused_for, 
+                             str_to_title(Qused_for)))
+used_for <- chop_and_prop(survey_used, Qused_for, num_items = 14) 
 
 lollipop_chart(used_for, 
           column_name = items, 
