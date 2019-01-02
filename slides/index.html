@@ -109,6 +109,90 @@ class: inverse, middle
 
 &lt;img src="index_files/figure-html/Respondent industry-1.png" width="504" /&gt;
 
+---
+# Ethnicity
+
+&lt;img src="index_files/figure-html/Ethnicity-1.png" width="504" /&gt;
+
+---
+# Education Level
+
+
+
+---
+# Job Title
+
+
+
+---
+# Languages Used Prior To R
+
+
+
+
+```r
+languages &lt;- survey %&gt;% select(Qlanguages)
+num_language_responses &lt;- sum(!is.na(languages$Qlanguages))
+languages_used &lt;- split_and_aggregate(languages, Qlanguages)
+languages_used &lt;- languages_used %&gt;% 
+  select(-num_responses) %&gt;% 
+  mutate(percent = round(n / num_language_responses * 100))
+top_15_items &lt;- top_n_choices(languages_used, items, num_language_responses, 15) %&gt;% arrange(percent)
+top_15_items &lt;- top_15_items %&gt;%
+  mutate(items = factor(as.character(items), levels = items))
+
+bar_chart(top_15_items, 
+          column_name = items, 
+          fill_color = params$bar_colors, 
+          title_string = "What Languages Do You Use With R?",
+          subtitle_string = question_text("Qlanguages"),
+*         caption_string = paste0(survey_name, ", n = ", num_language_responses))
+```
+
+&lt;img src="index_files/figure-html/Languages Used Prior To Learning R-1.png" width="504" /&gt;
+
+.footnote[
+Carl- your bar chart function here needs to be updated to use `num_language_responses`
+]
+
+---
+# First Language Learned
+
+
+```r
+fl &lt;- survey %&gt;%
+  transmute(Input = tolower(Qfirst_language),
+            Output = Qfirst_language)
+
+fl &lt;- fl %&gt;% mutate(Output = ifelse(str_detect(Input, "basic"), "Basic", Output),
+                    Output = ifelse(str_detect(Input, "fortran"), "Fortran", Output),
+                    Output = ifelse(str_detect(Input, "cobol"), "Cobol", Output),
+                    Output = ifelse(str_detect(Input, "algol"), "Algol", Output),
+                    Output = ifelse(str_detect(Input, "sql"), "SQL", Output),
+                    Output = ifelse(str_detect(Input, "html"), "HTML", Output),
+                    Output = ifelse(str_detect(Input, "pascal"), "Pascal", Output),
+                    Output = ifelse(str_detect(Input, "stata"), "Stata", Output),
+                    Output = ifelse(str_detect(Input, "dbase"), "DBase", Output),
+                    Output = ifelse(str_detect(Input, "just getting started"), "Just starting programming", Output),
+                    Output = ifelse(str_detect(Input, "bash"), "Bash", Output))
+
+# Honestly, the rest of the answers aren't significant, but you can check using the following
+# write_delim(fl_tallies, "data/first-language-dictionary.tsv", delim="\t")
+                   
+fl_tallies &lt;- fl %&gt;% count(Output, sort = TRUE)
+num_first_language_responses &lt;- sum(!is.na(fl$Output))
+top_15_languages &lt;- top_n_choices(fl_tallies, Output, num_first_language_responses, 15) %&gt;% 
+  mutate(Output = factor(Output, levels = rev(Output)))
+
+bar_chart(top_15_languages, 
+          column_name = Output, 
+          fill_color = params$bar_colors, 
+          title_string = "First Language or Tool Learned",
+          subtitle_string = question_text("Qfirst_language"),
+          caption_string = paste0(survey_name, ", n = ", num_first_language_responses))
+```
+
+&lt;img src="index_files/figure-html/First Language or Tool Learned-1.png" width="504" /&gt;
 
 
 ---
@@ -169,6 +253,14 @@ name: alison-lollipop
 # What Tools Do You Use With R?
 
 &lt;img src="index_files/figure-html/R Tools Used-1.png" width="504" /&gt;
+
+---
+name: alison-other-tools
+
+# What Tools Do You Use With R?
+
+
+&lt;img src="index_files/figure-html/alison-other-tools-1.png" width="504" /&gt;
     </textarea>
 <script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>
 <script src="https://platform.twitter.com/widgets.js"></script>
