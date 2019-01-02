@@ -172,9 +172,13 @@ ggplot(survey) +
 ```
 
 ---
+class: inverse, middle
+
 # Demographics
 
-## Respondent Ages
+---
+
+# Respondent Ages
 
 ```{r Respondent Ages}
 
@@ -186,7 +190,7 @@ ggplot(survey) +
 
 ---
 
-## Respondent Gender
+# Respondent Gender
 
 ```{r Respondent Gender}
 
@@ -223,7 +227,7 @@ ggplot(genders, aes(x = "", y = percent, fill = Qgender_coded)) +
 
 ---
 
-## Respondent Countries
+# Respondent Countries
 
 ```{r Respondent Countries}
 countries <- survey %>% count(Qcountry, sort=TRUE) %>% drop_na()
@@ -253,7 +257,8 @@ ggplot(data = plot_countries, aes(long, lat, group=group)) +
 ```
 
 ---
-## Industry
+
+# Industry
 
 ```{r Respondent industry}
 industry <- survey %>% count(Qindustry, sort = TRUE)
@@ -313,7 +318,7 @@ ggplot(top_10_industries) +
 
 ---
 
-## Respondent Ages By Learner Type
+# Respondent Ages By Learner Type
 
 ```{r R Learning Ages By Learner Type}
 
@@ -327,12 +332,12 @@ ggplot(filter(survey, !is.na(learner_type)), aes(x = 2018 - Qyear_born, group = 
 
 ---
 
-## Year Respondents Learned R
+# Year Respondents Learned R
 
 ```{r Year respondents learned R}
 
 ggplot(filter(survey, Qr_year >= 1990)) +
-  geom_histogram(aes(Qr_year), binwidth = 1, fill = "green", color="black") +
+  geom_histogram(aes(Qr_year), binwidth = 1, fill = bar_color, color="black") +
   scale_x_continuous(breaks = c(1990, 1995, 2000, 2005, 2010, 2015, 2018)) +
   labs(title = "Year Started Learning R", 
        subtitle = question_text("Qr_year"),
@@ -343,7 +348,7 @@ ggplot(filter(survey, Qr_year >= 1990)) +
 
 ---
 
-## Number of People You Work With That Know R By Learner Type
+# Number of People You Work With That Know R By Learner Type
 
 ```{r Number R Team Members}
 team_num_survey <- survey %>% filter(!is.na(learner_type))
@@ -359,7 +364,7 @@ ggplot(team_num_survey, aes(x = Qteam_r_users, group = learner_type)) +
 
 ---
 
-## Difficulty of Learning R based on Learner Type
+# Difficulty of Learning R based on Learner Type
 
 ```{r Ages By Learner Type}
 
@@ -381,7 +386,7 @@ ggplot(ss) +
 
 ---
 
-## What is R Used For?
+# What is R Used For?
 
 ```{r R Used For}
 # Breaks up uses into nested lists
@@ -465,7 +470,7 @@ ggplot(used_for, aes(x = fct_reorder(Qused_fct, prop_used),
 
 ---
 
-## Net Promoter Score
+# Net Promoter Score
 
 ```{r Net Promoter Score}
 recommend_totals <-survey %>% group_by(Qrecommend) %>% tally()
@@ -489,7 +494,7 @@ ggplot(recommend_scores) +
 
 ---
 
-## What Tools Do You Use With R?
+# What Tools Do You Use With R?
 
 ```{r R Tools Used}
 
