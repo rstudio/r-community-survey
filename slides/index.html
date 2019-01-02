@@ -115,11 +115,17 @@ class: inverse, middle
 &lt;img src="index_files/figure-html/Ethnicity-1.png" width="504" /&gt;
 
 ---
+exclude: true
+
 # Education Level
+
+showing you how to exclude a whole slide, also the tally function not working here so eval is FALSE
 
 
 
 ---
+exclude: true
+
 # Job Title
 
 
@@ -128,26 +134,6 @@ class: inverse, middle
 # Languages Used Prior To R
 
 
-
-
-```r
-languages &lt;- survey %&gt;% select(Qlanguages)
-num_language_responses &lt;- sum(!is.na(languages$Qlanguages))
-languages_used &lt;- split_and_aggregate(languages, Qlanguages)
-languages_used &lt;- languages_used %&gt;% 
-  select(-num_responses) %&gt;% 
-  mutate(percent = round(n / num_language_responses * 100))
-top_15_items &lt;- top_n_choices(languages_used, items, num_language_responses, 15) %&gt;% arrange(percent)
-top_15_items &lt;- top_15_items %&gt;%
-  mutate(items = factor(as.character(items), levels = items))
-
-bar_chart(top_15_items, 
-          column_name = items, 
-          fill_color = params$bar_colors, 
-          title_string = "What Languages Do You Use With R?",
-          subtitle_string = question_text("Qlanguages"),
-*         caption_string = paste0(survey_name, ", n = ", num_language_responses))
-```
 
 &lt;img src="index_files/figure-html/Languages Used Prior To Learning R-1.png" width="504" /&gt;
 
@@ -235,12 +221,12 @@ name: alison-forcats
 &lt;img src="index_files/figure-html/r-used-for2-1.png" width="504" /&gt;
 
 ---
-name: alison-lollipop
+name: alison-r-used-for
 
 # What is R used for?
 
+&lt;img src="index_files/figure-html/alison-r-used-for-1.png" width="504" /&gt;
 
-&lt;img src="index_files/figure-html/r-used-lollipop-1.png" width="504" /&gt;
 
 ---
 
@@ -258,7 +244,6 @@ name: alison-lollipop
 name: alison-other-tools
 
 # What Tools Do You Use With R?
-
 
 &lt;img src="index_files/figure-html/alison-other-tools-1.png" width="504" /&gt;
     </textarea>

@@ -267,8 +267,26 @@ bar_chart <- function(df,
   #return(p)
 }
 
-## Plot a simple lollipop plot. The call form is a little baroque, so here's an example
-## to illustrate the mapping of values to arguments.
+# Chop and prop: 
+# input: a df, a column in that df, and (optional) number of "items" (unique responses to keep, top 15 is default)
+# output: a df with the original quoted question name/items, the items as processed by fct_lump, and the n and prop_responses for plotting (need the proportions to take advantage of scales::percent when plotting)
+chop_and_prop <- function(df, question_name, num_items = 15) {
+  quoted_question <- enquo(question_name)
+  responses <- df %>% summarize(responses = sum(!is.na(!!quoted_question))) %>% pull()
+  chops <- df %>% 
+    mutate(items = str_remove(!!quoted_question, "i.e., ")) %>% 
+    tidyr::separate_rows(items, sep = ", ") %>% 
+    #mutate(items = if_else(str_length(items) >= 4, str_to_title(items), items)) %>% 
+    mutate(items = forcats::fct_lump(as.factor(items), n = num_items))
+  prop_items <- chops %>% 
+    count(items, sort = TRUE) %>% 
+    tidyr::drop_na(items) %>% 
+    mutate(prop_responses = n / responses,
+           total_responses = responses)
+  return(prop_items)
+}
+
+## Plot a simple lollipop plot. Intended to be used after chop_and_prop
 ##     lollipop_chart(df = ethnicities, 
 ##               column_name            = Qethnicity_coded, 
 ##               original_column_string = "Qethnicity",
@@ -282,25 +300,25 @@ lollipop_chart <- function(df,
                      fill_color,
                      title_string,
                      subtitle_string = "",
-                     caption_string = survey_name) {
+                     caption_string = survey_name,
+                     pct_accuracy = .1) {
   
   quoted_column <- enquo(column_name)
-  nudge_amount <- max(df$percent, rm.na = TRUE) * 0.05
-  p <- ggplot(df, aes(x = fct_reorder(Qtools_with_r, prop_tools), 
-                      y = prop_tools)) +
-    geom_point(aes(x = !!quoted_column, y = percent),
-             fill =  fill_color) +
-    geom_text(aes(x = !!quoted_column, y = percent , 
-                  label = paste0(percent, "%")), 
-              color="gray30", size=3, nudge_y = nudge_amount) +
+  nudge_amount <- max(df$prop_responses, na.rm = TRUE) * 0.05
+  p <- ggplot(df, aes(x = fct_reorder(!!quoted_column, prop_responses), 
+                      y = prop_responses)) +
+    geom_point(color = fill_color, size = 2) +
+    geom_segment(aes(xend = fct_rev(!!quoted_column), yend = 0), color = fill_color) +
+    geom_text(aes(label = scales::percent(prop_responses, accuracy = pct_accuracy)), 
+              hjust = -.25, 
+              color="black", 
+              size=3) +
     labs(title = title_string, 
          subtitle = subtitle_string,
          caption = caption_string,
          x="", y="") +
     coord_flip() +
-    theme(axis.line = element_blank(),
-          axis.text.x = element_blank(),
-          axis.ticks = element_blank())
+    scale_y_continuous(labels = scales::percent_format(accuracy = 1), limits = c(0, .95)) 
   print(p)
   #return(p)
 }
@@ -491,7 +509,11 @@ ggplot(ethnicities) +
 ```
 
 ---
+exclude: true
+
 # Education Level
+
+showing you how to exclude a whole slide, also the tally function not working here so eval is FALSE
 
 ```{r Education level, eval = FALSE}
 
@@ -522,6 +544,8 @@ bar_chart(df                     = r_education_results,
 ```
 
 ---
+exclude: true
+
 # Job Title
 
 ```{r Job title, eval = FALSE}
@@ -557,7 +581,7 @@ bar_chart (df = top_10_titles,
 
 
 
-```{r Languages Used Prior To Learning R, echo = TRUE}
+```{r Languages Used Prior To Learning R}
 
 languages <- survey %>% select(Qlanguages)
 num_language_responses <- sum(!is.na(languages$Qlanguages))
@@ -752,25 +776,21 @@ ggplot(used_for, aes(x = fct_reorder(Qused_fct, prop_used),
 ```
 
 ---
-name: alison-lollipop
+name: alison-r-used-for
 
 # What is R used for?
 
+```{r alison-r-used-for}
+used_for <- chop_and_prop(survey, Qused_for, num_items = 14) 
 
-```{r r-used-lollipop}
-ggplot(used_for, aes(x = fct_reorder(Qused_fct, prop_used), 
-                     y = prop_used)) +
-  geom_point(color = params$bar_colors, size = 2) + #<<
-  geom_segment(aes(xend = fct_rev(Qused_fct), yend = 0), color = params$bar_colors) + #<<
-  geom_text(aes(label = scales::percent(prop_used, accuracy = .1)), hjust = -.25, color="black", size=3) +
-  labs(title = question_text("Qused_for"),
-       caption = "2018 RStudio Learning R Survey",
-       x="Application", 
-       y="") +
-  coord_flip() +
-  scale_y_continuous(labels = scales::percent_format(accuracy = 1), limits = c(0, .95)) 
-
+lollipop_chart(used_for, 
+          column_name = items, 
+          fill_color = params$bar_colors, 
+          title_string = "What is R used for?",
+          subtitle_string = question_text("Qused_for"),
+          caption_string = paste0(survey_name, ", n = ", used_for$total_responses))
 ```
+
 
 ---
 
@@ -824,29 +844,15 @@ name: alison-other-tools
 
 # What Tools Do You Use With R?
 
-
 ```{r alison-other-tools}
-use_tools <- survey %>% 
-  summarize(responses = sum(!is.na(Qtools_with_r))) %>% 
-  pull()
+tools_used <- chop_and_prop(survey, Qtools_with_r, num_items = 15) 
 
-tools_used <- survey %>% 
-  transmute(Qtools_with_r = str_replace_all(Qtools_with_r, "i.e., ", "")) %>% 
-  separate_rows(Qtools_with_r, sep = ", ") %>% 
-  mutate(Qtools_with_r = fct_lump(as.factor(Qtools_with_r), n = 15)) %>% 
-  count(Qtools_with_r, sort = TRUE) %>% 
-  drop_na(Qtools_with_r) %>%
-  mutate(prop_tools = round(n / use_tools, 2))
-
-ggplot(tools_used, aes(x = fct_reorder(Qtools_with_r, prop_tools), 
-                     y = prop_tools)) +
-  geom_point(color = params$bar_colors, size = 2) + #<<
-  geom_segment(aes(xend = fct_rev(Qtools_with_r), yend = 0), color = params$bar_colors) + #<<
-  geom_text(aes(label = scales::percent(prop_tools, accuracy = 1)), hjust = -.25, color="black", size=3) +
-  labs(title = question_text("Qtools_with_r"),
-       caption = "2018 RStudio Learning R Survey",
-       x="Application", 
-       y="") +
-  coord_flip() +
-  scale_y_continuous(labels = scales::percent_format(accuracy = 1), limits = c(0, .95)) 
+lollipop_chart(tools_used, 
+          column_name = items, 
+          fill_color = params$bar_colors, 
+          title_string = "What Tools Do You Use With R?",
+          subtitle_string = question_text("Qtools_with_r"),
+          caption_string = paste0(survey_name, ", n = ", tools_used$total_responses))
 ```
+
+
