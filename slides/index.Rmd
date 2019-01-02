@@ -31,13 +31,10 @@ library(RColorBrewer)
 library(gendercodeR)
 library(ggrepel)
 library(extrafont)
-#language <- "English" # may also be "Spanish"
-
 
 # for plots
 survey_name <- "2018 RStudio Learning R Survey"
-theme_set(theme_minimal())
-#bar_color <- "#4c83b6"
+
 # ggplot2::theme_set(theme_minimal())
 # update those fontdefaults
 update_font_defaults <- function(font_choice = "Lato") {
@@ -52,7 +49,10 @@ theme_conf <- function(font_choice = "Lato"){
   ggplot2::theme_minimal(base_family = font_choice)
   
 }
+
+# set custom ggplot2 theme for plots
 ggplot2::theme_set(theme_conf())
+
 # get the data
 survey <- read_tsv(here::here("slides/data", paste0("survey_", params$language,".tsv")))
 survey_questions <- read_csv(here::here("slides/data/survey_questions.csv"))
@@ -218,11 +218,11 @@ pie_chart <- function(df,
     guides(fill = guide_legend()) +
     scale_fill_brewer(palette = colors) +
     #   scale_fill_viridis_d("Ethnicities", option = "A", direction = -1, alpha = 0.4) +
-    theme(legend.key.width=unit(1, "cm")) +
     #theme_classic() +
     coord_polar("y") +
     #    coord_flip() +
-    theme(axis.line = element_blank(),
+    theme(legend.key.width = unit(1, "cm"),
+          axis.line = element_blank(),
           axis.text = element_blank(),
           axis.ticks = element_blank(),
           panel.grid  = element_blank()) #<< needed to add this 
@@ -266,7 +266,44 @@ bar_chart <- function(df,
   print(p)
   #return(p)
 }
-ggplot2::theme_set(theme_conf())
+
+## Plot a simple lollipop plot. The call form is a little baroque, so here's an example
+## to illustrate the mapping of values to arguments.
+##     lollipop_chart(df = ethnicities, 
+##               column_name            = Qethnicity_coded, 
+##               original_column_string = "Qethnicity",
+##               text_position          = position        ## the name of the position column in the df
+##               title_string           = "Ethnicities", 
+##               fill_legend_title      = "Respondent Ethnicity"
+##               colors                 = "Set1"         From the RColorBrewer palettes
+
+lollipop_chart <- function(df,
+                     column_name, 
+                     fill_color,
+                     title_string,
+                     subtitle_string = "",
+                     caption_string = survey_name) {
+  
+  quoted_column <- enquo(column_name)
+  nudge_amount <- max(df$percent, rm.na = TRUE) * 0.05
+  p <- ggplot(df, aes(x = fct_reorder(Qtools_with_r, prop_tools), 
+                      y = prop_tools)) +
+    geom_point(aes(x = !!quoted_column, y = percent),
+             fill =  fill_color) +
+    geom_text(aes(x = !!quoted_column, y = percent , 
+                  label = paste0(percent, "%")), 
+              color="gray30", size=3, nudge_y = nudge_amount) +
+    labs(title = title_string, 
+         subtitle = subtitle_string,
+         caption = caption_string,
+         x="", y="") +
+    coord_flip() +
+    theme(axis.line = element_blank(),
+          axis.text.x = element_blank(),
+          axis.ticks = element_blank())
+  print(p)
+  #return(p)
+}
 ```
 
 ---
@@ -444,7 +481,7 @@ ggplot(ethnicities) +
     scale_fill_brewer(palette = "Set1") +
 #   scale_fill_viridis_d("Ethnicities", option = "A", direction = -1, alpha = 0.4) +
     theme(legend.key.width=unit(1, "cm")) +
-    theme_classic() +
+    #theme_classic() +
 #   coord_polar("y") +
     coord_flip() +
     theme(axis.line = element_blank(),
@@ -699,7 +736,7 @@ used_for <- survey %>%
          Qused_fct = fct_lump(as.factor(Qused_for), n = 15)) %>% 
   count(Qused_fct, sort = TRUE) %>% 
   drop_na(Qused_fct) %>%
-  mutate(prop_used = round(n / use_responses, 1))
+  mutate(prop_used = n / use_responses)
 
 ggplot(used_for, aes(x = fct_reorder(Qused_fct, prop_used), 
                      y = prop_used)) +
@@ -725,13 +762,13 @@ ggplot(used_for, aes(x = fct_reorder(Qused_fct, prop_used),
                      y = prop_used)) +
   geom_point(color = params$bar_colors, size = 2) + #<<
   geom_segment(aes(xend = fct_rev(Qused_fct), yend = 0), color = params$bar_colors) + #<<
-  geom_text(aes(label = scales::percent(prop_used)), hjust = -.25, color="black", size=3) +
+  geom_text(aes(label = scales::percent(prop_used, accuracy = .1)), hjust = -.25, color="black", size=3) +
   labs(title = question_text("Qused_for"),
        caption = "2018 RStudio Learning R Survey",
        x="Application", 
        y="") +
   coord_flip() +
-  scale_y_continuous(labels = scales::percent, limits = c(0, .95)) 
+  scale_y_continuous(labels = scales::percent_format(accuracy = 1), limits = c(0, .95)) 
 
 ```
 
@@ -796,22 +833,20 @@ use_tools <- survey %>%
 tools_used <- survey %>% 
   transmute(Qtools_with_r = str_replace_all(Qtools_with_r, "i.e., ", "")) %>% 
   separate_rows(Qtools_with_r, sep = ", ") %>% 
-  mutate(Qtools_with_r = str_to_title(Qtools_with_r),
-         Qtools_with_r = fct_lump(as.factor(Qtools_with_r), n = 15)) %>% 
+  mutate(Qtools_with_r = fct_lump(as.factor(Qtools_with_r), n = 15)) %>% 
   count(Qtools_with_r, sort = TRUE) %>% 
   drop_na(Qtools_with_r) %>%
-  mutate(prop_tools = round(n / use_tools, 1))
+  mutate(prop_tools = round(n / use_tools, 2))
 
 ggplot(tools_used, aes(x = fct_reorder(Qtools_with_r, prop_tools), 
                      y = prop_tools)) +
   geom_point(color = params$bar_colors, size = 2) + #<<
   geom_segment(aes(xend = fct_rev(Qtools_with_r), yend = 0), color = params$bar_colors) + #<<
-  geom_text(aes(label = scales::percent(prop_tools)), hjust = -.25, color="black", size=3) +
+  geom_text(aes(label = scales::percent(prop_tools, accuracy = 1)), hjust = -.25, color="black", size=3) +
   labs(title = question_text("Qtools_with_r"),
        caption = "2018 RStudio Learning R Survey",
        x="Application", 
        y="") +
   coord_flip() +
-  scale_y_continuous(labels = scales::percent, limits = c(0, .95)) +
-  theme_conf()
+  scale_y_continuous(labels = scales::percent_format(accuracy = 1), limits = c(0, .95)) 
 ```
