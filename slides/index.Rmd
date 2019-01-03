@@ -22,7 +22,8 @@ params:
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, fig.retina = 3)
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, fig.retina = 3,
+                      fig.asp = 0.618, fig.width = 12)
 library(choroplethr)
 library(choroplethrMaps)
 data(country.map)
@@ -37,16 +38,17 @@ survey_name <- "2018 RStudio Learning R Survey"
 
 # ggplot2::theme_set(theme_minimal())
 # update those fontdefaults
-update_font_defaults <- function(font_choice = "Lato") {
-    ggplot2::update_geom_defaults("text", list(family = font_choice))
-    ggplot2::update_geom_defaults("label", list(family = font_choice))
+update_font_defaults <- function(font_choice = "Lato", font_size = 5) {
+    ggplot2::update_geom_defaults("text", list(family = font_choice, size = font_size))
+    ggplot2::update_geom_defaults("label", list(family = font_choice, size = font_size))
     
 }
 theme_conf <- function(font_choice = "Lato"){ 
   
   update_font_defaults()
   
-  ggplot2::theme_minimal(base_family = font_choice)
+  ggplot2::theme_minimal(base_family = font_choice,
+                         base_size = 18)
   
 }
 
@@ -131,7 +133,8 @@ tally_question <- function(df, question_name, rm.na = TRUE, sort = TRUE) {
     filtered_df <- filtered_df %>% filter(!is.na(!!quoted_question))
   }
   results_df <- filtered_df %>% 
-    count(!!quoted_question, sort = sort) %>% add_tally() %>% 
+    count(!!quoted_question, sort = sort, name = "n") %>% 
+    add_tally(name = "nn") %>% 
     mutate(percent = round(n / nn * 100))
   return(results_df)
 }
@@ -278,7 +281,7 @@ chop_and_prop <- function(df, question_name, num_items = 15) {
     tidyr::separate_rows(items, sep = ", ") %>% 
     mutate(items = forcats::fct_lump(as.factor(items), n = num_items))
   prop_items <- chops %>% 
-    count(items, sort = TRUE) %>% 
+    count(items) %>% 
     tidyr::drop_na(items) %>% 
     mutate(prop_responses = n / responses,
            total_responses = responses)
@@ -297,21 +300,23 @@ chop_and_prop <- function(df, question_name, num_items = 15) {
 lollipop_chart <- function(df,
                      column_name, 
                      fill_color,
-                     title_string,
+                     title_string = NULL,
                      subtitle_string = "",
                      caption_string = survey_name,
                      pct_accuracy = .1) {
   
   quoted_column <- enquo(column_name)
   nudge_amount <- max(df$prop_responses, na.rm = TRUE) * 0.05
-  p <- ggplot(df, aes(x = fct_reorder(!!quoted_column, prop_responses), 
+  p <- ggplot(df, aes(x = fct_relevel(fct_reorder(!!quoted_column, prop_responses), "Other"), 
                       y = prop_responses)) +
-    geom_point(color = fill_color, size = 2) +
-    geom_segment(aes(xend = fct_rev(!!quoted_column), yend = 0), color = fill_color) +
+    geom_point(color = fill_color, size = 3) +
+    geom_segment(aes(xend = fct_rev(!!quoted_column), yend = 0), 
+                 color = fill_color,
+                 size = 1.5,
+                 alpha = .7) +
     geom_text(aes(label = scales::percent(prop_responses, accuracy = pct_accuracy)), 
               hjust = -.25, 
-              color="black", 
-              size=3) +
+              color="black") +
     labs(title = title_string, 
          subtitle = subtitle_string,
          caption = caption_string,
@@ -324,8 +329,13 @@ lollipop_chart <- function(df,
 ```
 
 ---
+class: middle
 
+.left-column[
 ## Responses over time
+]
+
+.right-column[
 
 ```{r responses over time}
 survey <- survey %>% mutate(number_responses = cumsum(!is.na(Qtime)))
@@ -334,26 +344,40 @@ ggplot(survey) +
   ggtitle(sprintf("%s Survey Responses Over Time (N = %d)", params$language, respondents)) + 
   labs(y = "Time", x = "Response Date")
 ```
+]
 
 ---
 class: inverse, middle
 
-# Demographics
+# Our Community Diversity
 
 ---
+class: middle
 
-# Respondent Ages
+.left-column[
+## Age Diversity
+]
+
+.right-column[
 
 ```{r Respondent Ages}
 ggplot(survey) +
   geom_histogram(aes(2018 - Qyear_born), binwidth = 5,  fill = params$bar_colors, color="black") +
   scale_x_continuous(breaks = seq(15,80,5)) +
-  labs(title = "Respondent Ages (Histogram)", x="Age", y="Count")
+  labs(x="Age", y="Count")
 ```
 
----
+]
 
-# Respondent Gender
+---
+class: middle
+
+.left-column[
+
+## Gender Diversity
+]
+
+.right-column[
 
 ```{r Respondent Gender}
 genders <- survey %>% 
@@ -381,6 +405,57 @@ pie_chart(df                 = genders,
           colors                 = "Set1")
 ```
 
+]
+
+---
+class: middle
+name: alison-gender-props
+
+.left-column[
+
+## Gender Diversity
+]
+
+.right-column[
+
+```{r Respondent Gender2}
+genders <- chop_and_prop(survey, Qgender_coded, num_items = 4)
+
+lollipop_chart(genders, 
+          column_name = items, 
+          fill_color = params$bar_colors, 
+          subtitle_string = question_text("Qgender"),
+          caption_string = paste0(survey_name, ", n = ", genders$total_responses))
+```
+
+]
+
+
+---
+class: middle
+name: alison-gender-age
+
+.left-column[
+
+### Minority Gender Representation
+]
+
+.right-column[
+
+```{r Respondent Gender Age}
+minority_genders <- survey %>% 
+  mutate(Qgender_coded = forcats::fct_lump(as.factor(Qgender_coded), n = 3)) %>% 
+  drop_na(Qgender_coded) %>% 
+  filter(!Qyear_born == 2018)
+ggplot(minority_genders, aes(2018 - Qyear_born, fill = Qgender_coded)) +
+  geom_histogram(binwidth = 2, colour = "white", alpha = .8) +
+  #scale_x_continuous(breaks = seq(15,80,5)) +
+  labs(x="Age", y="Count", fill = "") +
+  scale_fill_viridis_d(begin = .2, end = 1) +
+  theme(legend.position="bottom")
+```
+
+]
 ---
 
 # Respondent Countries
@@ -608,7 +683,7 @@ Carl- your bar chart function here needs to be updated to use `num_language_resp
 ---
 # First Language Learned
 
-```{r First Language or Tool Learned, echo = TRUE}
+```{r First Language or Tool Learned}
 
 fl <- survey %>%
   transmute(Input = tolower(Qfirst_language),
@@ -643,35 +718,181 @@ bar_chart(top_15_languages,
 ```
 
 
+
+
 ---
+class: inverse, middle
 
-# Respondent Ages By Learner Type
+# Learning Questions
 
-```{r R Learning Ages By Learner Type}
+---
+# R Difficulty (R Users Only)
 
-ggplot(filter(survey, !is.na(learner_type)), aes(x = 2018 - Qyear_born, group = learner_type)) +
-  geom_density(aes(fill = learner_type), color="black", alpha = 0.5) +
-  scale_fill_brewer(palette = "Set1") +
-  labs(title = "Respondent Ages (Density Plot)", 
-         caption = "2018 RStudio Learning R Survey",
-       x="Age", y="Density", fill = "Learner Type")
+```{r Difficulty Learning R Experienced}
+
+r_difficulty <- tally_question(survey, Qr_difficulty_experienced, rm.na = TRUE, sort = FALSE)
+diff_responses <- first(r_difficulty$nn)
+mean_difficulty = round(mean(survey$Qr_difficulty_experienced, na.rm = TRUE), 1)
+
+r_difficulty <- r_difficulty %>%
+  mutate(percent = percent / 100)      # the plot below uses a percent y axis
+
+ggplot(r_difficulty) +
+  geom_bar(aes(x = Qr_difficulty_experienced, y = percent),
+           stat = "identity",
+           color = params$bar_colors,
+           fill = params$bar_colors,
+           width = 0.5,
+           alpha = 0.5) +
+  geom_text(aes(x = Qr_difficulty_experienced, y = percent,
+                label = paste0(round(percent * 100), "%")),
+                color = "gray30",
+                nudge_y = .03) +
+  annotate("text", x = 2, y = 0.4, label = paste0("Mean value = ", mean_difficulty)) +
+  scale_y_continuous(labels = scales::percent) +
+  labs(title = "Difficulty in Learning R (R Users Only)", 
+       subtitle = question_text("Qr_difficulty_experienced", 72),
+       caption = paste0(survey_name, ", n = ", diff_responses),
+       x="Respondent Rating (1 = Easiest, 5 = Most Difficult)", y="")
+```
+
+---
+# Time To R Proficiency (R Users Only)
+
+```{r Time to proficiency}
+
+r_proficiency <- tally_question(survey, Qtime_to_proficiency, rm.na = TRUE, sort = TRUE)
+r_proficiency <- r_proficiency %>% 
+  mutate(Qtime_to_proficiency = factor(Qtime_to_proficiency, levels = rev(Qtime_to_proficiency)))
+
+bar_chart(df                 = r_proficiency,
+          column_name        = Qtime_to_proficiency,
+          title_string           = "Time To Achieve Proficiency In R (R Users Only)",
+          subtitle_string        = question_text("Qtime_to_proficiency", 70),
+          caption_string         = paste0("RStudio Learning R Survey, n = ",first(r_proficiency$nn)),
+          fill_color             = params$bar_colors)
+
+```
+
+---
+# Reason Why Learned R (R Users Only)
+
+```{r Why Learned R}
+
+r_why <- tally_question(survey, Qr_reason_experienced, rm.na = TRUE, sort = TRUE)
+r_why <- r_why %>% 
+  mutate(Qr_reason_experienced = factor(Qr_reason_experienced, levels = rev(Qr_reason_experienced)))
+
+bar_chart(df                 = r_why,
+          column_name        = Qr_reason_experienced,
+          title_string           = "Reason To Learn R (R Users Only)",
+          subtitle_string        = question_text("Qr_reason_experienced", 40),
+          caption_string         = paste0("RStudio Learning R Survey, n = ",first(r_why$nn)),
+          fill_color             = params$bar_colors)
+
 ```
 
 ---
 
-# Year Respondents Learned R
+# What is Your Experience with R? (All Respondents)
+
+```{r R Experience so far}
+# Multiple categories selected will be separated by commas, so we'll count those as multiple ethnicities
+# This will probably miscategorize some open ends, but a quick analysis showed we have very few open ends
+# with embedded commas.
+
+r_experience <- tally_question(survey, Qr_experience, rm.na = TRUE, sort = FALSE)
+r_experience_responses <- first(r_experience$nn)
+r_experience <- r_experience %>% 
+ mutate(Qr_experience_factor = factor(Qr_experience, levels = Qr_experience),
+         position = cumsum(percent) - percent / 2,
+         label = ifelse(percent >= 2, paste0(Qr_experience, "\n", round(percent), "%"), ""))
+
+pie_chart(df                 = r_experience,
+          column_name        = Qr_experience_factor,
+          text_position          = 100 - position,
+          title_string           = "R Experience (All Respondents)",
+          subtitle_string        = question_text("Qr_experience"),
+          caption_string         = paste0("RStudio Learning R Survey, n = ",r_experience_responses),
+          fill_legend_title      = "",
+          colors                 = "Set1")
+
+```
+
+---
+
+# How Did You Learn R?  (R Users Only)
+
+```{r How Did You Learn R}
+# We shorten down the given answers while categorizing open-text answers given for "Other"
+# Just as we did for the gender and industry questions, we use small dictionary to do this
+# However, because commas may appear in the open text respones, we'll use a tsv file instead of a csv one.
+
+r_path_dictionary <- read_delim(here::here("data/r-path-dictionary.tsv"), delim = "\t")
+r_paths <- survey %>% select(Qr_learning_path) %>% left_join(r_path_dictionary, c("Qr_learning_path" = "Input"))
+r_path_results <- tally_question(r_paths, Output, rm.na = TRUE, sort = TRUE)
+# answer_table <- r_paths %>% select(Qr_learning_path, n)
+# write_delim(answer_table, "data/r-path-dictionary.tsv", delim="\t")
+r_path_responses <- first(r_path_results$nn)
+
+r_path_results <- r_path_results %>% 
+ mutate(Output = factor(Output, levels = Output),
+         position = cumsum(percent) - percent / 2,
+         label = ifelse(percent >= 2, paste0(Output, "\n", round(percent), "%"), ""))
+
+pie_chart(df                 = r_path_results,
+          column_name        = Output,
+          text_position          = 100 - position,
+          title_string           = "R Learning Path  (R Users Only)",
+          subtitle_string        = question_text("Qr_learning_path"),
+          caption_string         = paste0(survey_name, ", n = ", r_path_responses),
+          fill_legend_title      = "",
+          colors                 = "Set2")
+
+
+```
+
+---
+# Respondent Ages By Learner Type
+
+```{r R Learning Ages By Learner Type}
+
+ages <- survey %>%
+  filter(!is.na(learner_type) & Qyear_born < 2010) %>% 
+  mutate(age = 2018 - Qyear_born)
+
+mean_ages <- ages %>% 
+  group_by(learner_type) %>% 
+  summarize(mean_age = mean(age, na.rm = TRUE))
+
+ggplot(ages, aes(x = learner_type, y = age, group = learner_type)) +
+  geom_violin(aes(color = learner_type), width = 0.5) +
+  geom_jitter(aes(color = learner_type), alpha = 0.1, width = 0.02) +
+  scale_y_continuous(breaks = seq(15,90,5)) +
+  scale_color_brewer(palette = "Dark2") +
+  labs(title = "Respondent Age",
+       subtitle = sprintf("Early Learner Mean Age = %d, Recent Learner = %d", 
+                          round(mean_ages$mean_age[1]), round(mean_ages$mean_age[2])),
+       caption = survey_name,
+       x="Learner Type", y="Age", color = "Learner Type")
+```
+
+---
+
+# Year Respondents Learned R (All Respondents)
 
 ```{r Year respondents learned R}
+
+
 
 ggplot(filter(survey, Qr_year >= 1990)) +
   geom_histogram(aes(Qr_year), binwidth = 1, fill = params$bar_colors, color="black") +
   scale_x_continuous(breaks = c(1990, 1995, 2000, 2005, 2010, 2015, 2018)) +
   labs(title = "Year Started Learning R", 
        subtitle = question_text("Qr_year"),
-       caption = "2018 RStudio Learning R Survey",
+       caption = survey_name,
        x="Year", y="Count")
 ```
-
 
 ---
 
@@ -679,14 +900,17 @@ ggplot(filter(survey, Qr_year >= 1990)) +
 
 ```{r Number R Team Members}
 team_num_survey <- survey %>% filter(!is.na(learner_type))
-ggplot(team_num_survey, aes(x = Qteam_r_users, group = learner_type)) +
-  geom_density(aes(fill = learner_type), color="black", alpha = 0.5) +
-  scale_x_continuous(trans = "log10") +
-  scale_fill_brewer(palette = "Set1") +
+
+ggplot(team_num_survey, aes(x = learner_type, y = Qteam_r_users, group = learner_type)) +
+  geom_violin(aes(color = learner_type), width = 0.5) +
+  geom_jitter(aes(color = learner_type), alpha = 0.1, width = 0.02) +
+  scale_y_continuous(trans = "log10") +
+  scale_color_brewer(palette = "Dark2") +
   labs(title = "Number of Team Members Who Know R (Density Plot)", 
-       subtitle = question_text("Qteam_r_users"),
-       caption = "2018 RStudio Learning R Survey",
-       x="Number", y="Density", fill = "Learner Type")
+       subtitle = question_text("Qteam_r_users", 50),
+       caption = survey_name,
+       x="Learner Type", y="# Team Members", color = "Learner Type")
+
 ```
 
 ---
@@ -712,8 +936,15 @@ ggplot(ss) +
 ```
 
 ---
+class: middle
 
+
+.left-column[
 # What is R Used For?
+]
+
+.right-column[
+
 
 ```{r R Used For}
 # Breaks up uses into nested lists
@@ -745,8 +976,14 @@ x="Application", y="Percent") +
 
 ---
 name: alison-r-used-for
+class: middle
 
-# What is R used for?
+.left-column[
+## What is R used for?
+]
+
+.right-column[
+
 
 ```{r alison-r-used-for}
 survey_used <- survey %>% 
@@ -762,11 +999,17 @@ lollipop_chart(used_for,
           subtitle_string = question_text("Qused_for"),
           caption_string = paste0(survey_name, ", n = ", used_for$total_responses))
 ```
-
+]
 
 ---
+class: middle
+name: net-promotor-score
 
-# Net Promoter Score
+.left-column[
+## Net Promoter Score
+]
+
+.right-column[
 
 ```{r Net Promoter Score}
 recommend_totals <-survey %>% group_by(Qrecommend) %>% tally()
@@ -787,10 +1030,17 @@ ggplot(recommend_scores) +
        caption = "2018 RStudio Learning R Survey",
        x="Score", y="Count")
 ```
+]
 
 ---
+class: middle
 
-# What Tools Do You Use With R?
+
+.left-column[
+## What Tools Do You Use With R?
+]
+
+.right-column[
 
 ```{r R Tools Used}
 uses <- survey %>% transmute(tools = str_replace_all(Qtools_with_r, "i.e., ", ""))
@@ -806,15 +1056,25 @@ top_15_items <- top_15_items %>%
 bar_chart(top_15_items, 
           column_name = items, 
           fill_color = params$bar_colors, 
-          title_string = "What Tools Do You Use With R?",
+          title_string = "What Tools Do You Use With R?  (R Users Only)",
           subtitle_string = question_text("Qtools_with_r"),
           caption_string = paste0(survey_name, ", n = ", num_tool_responses))
 ```
+]
+
+.footnote[
+R Users Only
+]
 
 ---
+class: middle
 name: alison-other-tools
 
-# What Tools Do You Use With R?
+.left-column[
+## What Tools Do You Use With R?
+]
+
+.right-column[
 
 ```{r alison-other-tools}
 tools_used <- chop_and_prop(survey, Qtools_with_r, num_items = 15) 
@@ -822,9 +1082,195 @@ tools_used <- chop_and_prop(survey, Qtools_with_r, num_items = 15)
 lollipop_chart(tools_used, 
           column_name = items, 
           fill_color = params$bar_colors, 
-          title_string = "What Tools Do You Use With R?",
+          #title_string = "What Tools Do You Use With R?",
           subtitle_string = question_text("Qtools_with_r"),
           caption_string = paste0(survey_name, ", n = ", tools_used$total_responses))
 ```
+]
 
+.footnote[
+R Users Only
+]
+
+---
+class: middle
+
+.left-column[
+
+## Greatest Difficulty in Learning R
+]  
+
+.right-column[
+
+```{r Greatest difficulting learning}
+
+difficulty_answers <- survey %>% select(Qbiggest_difficulty) %>% filter(!is.na(Qbiggest_difficulty))
+num_difficulties <- sum(!is.na(survey$Qbiggest_difficulty))
+difficulties <- split_and_aggregate(difficulty_answers, Qbiggest_difficulty)
+difficulties <- difficulties %>% 
+  mutate(percent = round(n / num_difficulties * 100)) %>% 
+  select(-num_responses)
+top_12_difficulties <- top_n_choices(difficulties, items, num_difficulties, 12)
+top_12_difficulties <- top_12_difficulties %>%
+  mutate(items = factor(as.character(items), levels = rev(items)))
+
+bar_chart(top_12_difficulties, 
+          column_name = items, 
+          fill_color = params$bar_colors, 
+          title_string = "Difficulties In Learning R  (R Users Only)",
+          subtitle_string = question_text("Qbiggest_difficulty"),
+          caption_string = paste0(survey_name, ", n = ", num_difficulties))
+
+```
+]
+
+---
+class: middle
+
+.left-column[
+## Frequency of R Use 
+]
+
+.right-column[
+```{r Frequency of R Use}
+
+r_use_frequency <- survey %>% select(Qr_how_often_used)
+r_use_results <- tally_question(r_use_frequency, Qr_how_often_used, rm.na = TRUE, sort = TRUE)
+# answer_table <- r_paths %>% select(Qr_learning_path, n)
+# write_delim(answer_table, "data/r-path-dictionary.tsv", delim="\t")
+r_use_responses <- first(r_use_results$nn)
+
+r_use_results <- r_use_results %>% 
+ mutate(Qr_how_often_used = factor(Qr_how_often_used, levels = rev(Qr_how_often_used)),
+         position = cumsum(percent) - percent / 2,
+         label = ifelse(percent >= 2, paste0(Qr_how_often_used, "\n", round(percent), "%"), ""))
+
+bar_chart(df                 = r_use_results,
+          column_name        = Qr_how_often_used,
+          title_string           = "Frequency of R Use (R Users Only)",
+          subtitle_string        = question_text("Qr_how_often_used"),
+          caption_string         = paste0(survey_name, ", n = ", r_use_responses),
+          fill_color             = params$bar_colors)
+
+
+```
+]
+
+.footnote[
+(R Users Only)
+]
+
+---
+class: middle
+
+.left-column[
+## R Enjoyment
+
+]
+
+.right-column[
+
+```{r R Enjoyment}
+
+r_enjoyment <- tally_question(survey, Qr_enjoyment, rm.na = TRUE, sort = FALSE)
+diff_responses <- first(r_enjoyment$nn)
+mean_enjoyment = round(mean(survey$Qr_enjoyment, na.rm = TRUE), 1)
+
+r_enjoyment <- r_enjoyment %>%
+  mutate(percent = percent / 100)      # the plot below uses a percent y axis
+
+ggplot(r_enjoyment) +
+  geom_bar(aes(x = Qr_enjoyment, y = percent),
+           stat = "identity",
+           color = params$bar_colors,
+           fill = params$bar_colors,
+           width = 0.5,
+           alpha = 0.5) +
+  geom_text(aes(x = Qr_enjoyment, y = percent,
+                label = paste0(round(percent * 100), "%")),
+                color = "gray30",
+                nudge_y = .03) +
+  geom_vline(aes(xintercept = mean_enjoyment), color = "green") +
+  annotate("text", x = 4, y = 0.5, label = paste0("Mean value = ", mean_enjoyment)) +
+  scale_y_continuous(labels = scales::percent) +
+  labs(title = "Enjoyment Using R (R Users Only)", 
+       subtitle = question_text("Qr_enjoyment", 60),
+       caption = paste0(survey_name, ", n = ", diff_responses),
+       x="Respondent Rating (1 = Not at all, 5 = A great deal)", y="")
+```
+
+]  
+
+.footnote[
+ (R Users Only)
+]
+
+---
+class: middle
+
+.left-column[
+## Tidyverse Learning 
+]
+
+.right-column[
+
+```{r tidyverse Learning}
+
+learned_with_tidyverse <- tally_question(survey, Qtidyverse_learning, rm.na = TRUE, sort = TRUE)
+learned_with_tidyverse_responses <- first(learned_with_tidyverse$nn)
+learned_with_tidyverse <- learned_with_tidyverse %>% 
+ mutate(Qtidyverse_learning_factor = factor(Qtidyverse_learning, levels = Qtidyverse_learning),
+         position = cumsum(percent) - percent / 2,
+         label = ifelse(percent >= 2, paste0(Qtidyverse_learning, "\n", round(percent), "%"), ""))
+
+pie_chart(df                 = learned_with_tidyverse,
+          column_name        = Qtidyverse_learning_factor,
+          text_position          = 100 - position,
+          title_string           = "Learned With Tidyverse (R Users Only)",
+          subtitle_string        = question_text("Qtidyverse_learning"),
+          caption_string         = paste0(survey_name, ", n = ",learned_with_tidyverse_responses),
+          fill_legend_title      = "",
+          #reverse_fill_legend    = FALSE,
+          colors                 = "Set1")
+
+```
+]
+
+.footnote[
+(R Users Only)
+]
+
+---
+class: middle
+
+.left-column[
+## Tidyverse Use 
+]
+
+.right-column[
+```{r tidyverse}
+
+tidyverse_use <- tally_question(survey, Qtidyverse_today, rm.na = TRUE, sort = TRUE)
+tidyverse_use_responses <- first(tidyverse_use$nn)
+tidyverse_use <- tidyverse_use %>% 
+ mutate(Qtidyverse_today_factor = factor(Qtidyverse_today, levels = Qtidyverse_today),
+         position = cumsum(percent) - percent / 2,
+         label = ifelse(percent >= 2, paste0(Qtidyverse_today, "\n", round(percent), "%"), ""))
+
+pie_chart(df                 = tidyverse_use,
+          column_name        = Qtidyverse_today_factor,
+          text_position          = 100 - position,
+          title_string           = "Tidyverse Use Frequency Today (R Users Only)",
+          subtitle_string        = question_text("Qtidyverse_today"),
+          caption_string         = paste0(survey_name, ", n = ",tidyverse_use_responses),
+          fill_legend_title      = "",
+          #reverse_fill_legend    = FALSE,
+          colors                 = "Set1")
+
+```
+]
+
+.footnote[
+(R Users Only)
+]
 
