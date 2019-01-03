@@ -1,0 +1,588 @@
+---
+title: "Learning R Survey Results"
+author: "Carl Howe, RStudio"
+date: "`r Sys.Date()`"
+output:
+  xaringan::moon_reader:
+    css: ["default", "css/rstudio.css", "css/fonts.css"]
+    lib_dir: libs
+    nature:
+      slideNumberFormat: ""
+      highlightStyle: github
+      highlightLines: true
+      countIncrementalSlides: false
+      ratio: "16:9"
+      beforeInit: "https://platform.twitter.com/widgets.js"
+    seal: false 
+    includes:
+      in_header: header.html
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, fig.retina = 3)
+library(tidyverse)
+library(RColorBrewer)
+library(choroplethr)
+library(choroplethrMaps)
+library(extrafont)
+library(gendercodeR)
+library(here)
+
+language <- "English" # may also be "Spanish"
+
+
+# for plots
+theme_set(theme_minimal())
+bar_color <- "#4c83b6"
+# ggplot2::theme_set(theme_minimal())
+# update those fontdefaults
+update_font_defaults <- function(font_choice = "Lato") {
+    ggplot2::update_geom_defaults("text", list(family = font_choice))
+    ggplot2::update_geom_defaults("label", list(family = font_choice))
+    
+}
+theme_conf <- function(font_choice = "Lato"){ 
+  
+  update_font_defaults()
+  
+  ggplot2::theme_minimal(base_family = font_choice)
+  
+}
+ggplot2::theme_set(theme_conf())
+# get the data
+
+survey_spec <- cols(
+  Qtime = col_character(),
+  Qindustry = col_character(),
+  Qtitle = col_character(),
+  Qwork_title = col_character(),
+  Qlanguages = col_character(),
+  Qfirst_language = col_character(),
+  Qr_experience = col_character(),
+  Qr_year = col_double(),
+  Qtime_to_proficiency = col_character(),
+  Qr_learning_path = col_character(),
+  Qreason_to_learn = col_character(),
+  Qr_use = col_character(),
+  Qr_length_to_success = col_character(),
+  Qr_difficulty = col_double(),
+  Qr_reason_experienced = col_character(),
+  Qr_how_often_used = col_character(),
+  Qr_enjoyment = col_double(),
+  Qr_difficulty_experienced = col_double(),
+  Qtidyverse_learning = col_character(),
+  Qtidyverse_today = col_character(),
+  Qshiny = col_character(),
+  Qunit_tests = col_character(),
+  Qlike_best = col_character(),
+  Qlike_least = col_character(),
+  Qrecommend = col_double(),
+  Qused_for = col_character(),
+  Qmost_difficult_aspect = col_character(),
+  blank_question = col_logical(),
+  Qnot_live_without = col_character(),
+  Qcapability_missing = col_character(),
+  Qtools = col_character(),
+  Qchange_one_thing = col_character(),
+  Qyear_born = col_double(),
+  Qgender = col_character(),
+  Qcountry = col_character(),
+  Qethnicity = col_character(),
+  Qdegree = col_character(),
+  Qteam_r_users = col_double(),
+  Qversion_control = col_character(),
+  Qtools_with_r = col_character(),
+  Qobstacles_to_starting = col_character(),
+  Qbiggest_difficulty = col_character(),
+  Qhow_to_learn_r = col_character()
+)
+
+survey <- read_delim(here::here("slides/data", paste0("final_survey_", language,".tsv")), col_types = survey_spec, delim="\t")
+est <- locale(tz="US/Eastern")
+survey$Qtime <- parse_datetime(survey$Qtime, format = "%m/%d/%Y %H:%M:%S", locale=est)
+survey_questions <- read_delim(here::here("slides/data/final_survey_questions_English.tsv"), delim="\t")
+# Saving some metadata for later
+respondents <- nrow(survey)
+
+survey <- survey %>% 
+  mutate(learner_type = ifelse(Qr_year < 1900, NA, ifelse(Qr_year <= 2016, "Early Learner", "Recent Learner")))
+
+# This codes the open-text gender question into a more friendly form for analysis
+opentext_gender_dictionary <- read_csv("data/opentext_gender_dictionary.csv")
+survey$Qgender <- survey$Qgender %>% tolower() %>% str_trim()
+survey <- genderRecode(survey, method = "narrow", 
+                       genderColName = "Qgender",
+                       outputColName = "Qgender_coded",
+                       customDictionary = opentext_gender_dictionary)
+uncoded_genders <- survey %>% group_by(Qgender_coded) %>% count(sort = TRUE)
+# write_csv(uncoded_genders, "data/uncoded_genders_language.csv")
+# 
+
+```
+
+layout: true
+  
+<div class="my-footer"><span>rstd.io/survey</span></div>
+
+<!-- this adds the link footer to all slides, depends on my-footer class in css-->
+
+---
+name: title
+background-image: url(img/title-blue.png)
+background-size: cover
+class: inverse
+
+# Learning R 
+
+<br>
+<br>
+
+<img src="img/RStudio-Logo-White.png" alt="rstudio-logo" width = '30%' />
+
+<br>
+<br>
+
+### Our Community Survey
+
+.large[Carl Howe | rstudio::conf | `r Sys.Date()`]
+
+<!-- this ends up being the title slide since seal = FALSE-->
+
+---
+class: inverse, middle
+
+# Methodology
+
+--
+
+.pull-left[
+- Survey conducted between December 6 and December 31, 2018
+
+- Data and processing scripts can be found the repo at the end of this talk
+
+- Data and scripts are open source
+]
+
+--
+
+.pull-right[
+- Survey was fielded in both English and Spanish versions
+
+- Respondents solicited from
+    + community.rstudio.com
+    + Twitter followers of RStudio employees
+    + reddit.com/datascience
+    
+- Survey results are not representative of any broader population
+]
+
+```{r helpers, include=FALSE}
+
+###
+### Let's define helper functions before we get going:
+###
+
+
+# Split and aggregate: derives multiple answers to a single question by separating on commas and returning
+# the results as an embedded list in the dataframe.
+split_and_aggregate <- function(df, question_name) {
+  quoted_question <- enquo(question_name)
+  responses_df <- df %>% summarize(responses = sum(!is.na(!!quoted_question)))
+  splits <- df %>% mutate(items = map(!!quoted_question, str_split, ", ")) %>% unnest()
+  
+  aggregated_items <- splits %>% unnest() %>% group_by(items) %>% count(sort=TRUE)
+  aggregated_items <- aggregated_items %>% mutate(num_responses = responses_df$responses)
+  return(aggregated_items)
+}
+
+# Top N choices: function to distill many possible results to a question to the top N
+# responses, with the rest aggregated into an "Other" answer.
+top_n_choices <- function(df, column_name, total_responses, num = 10) {
+  
+  quoted_column_name <- enquo(column_name)
+  summarized_responses <- df %>% 
+    mutate(percent = round(n / total_responses * 100)) %>% 
+    arrange(desc(percent))
+
+  # Now take these responses and only show the top N, aggregating the rest into an Other category
+
+  literals <- head(summarized_responses, num) %>% 
+    ungroup()
+  other <- tail(summarized_responses, -num) %>% 
+    ungroup() %>% 
+    summarize(!!quoted_column_name := "Other", 
+              n = sum(n),
+              percent = round(n / first(total_responses) * 100))
+  top_n <- rbind(literals, other) %>% drop_na()
+  return(top_n)
+}
+
+question_text <- function(question_name_string)
+{
+   question_text <- survey_questions %>% filter(Question_name == question_name_string) %>% select(Question_text)
+   return_text <- question_text$Question_text %>% str_wrap(width = 50)
+   return(paste0('"', return_text, '"'))
+}
+```
+
+---
+
+## Responses over time
+
+```{r responses over time}
+survey <- survey %>% mutate(number_responses = cumsum(!is.na(Qtime)))
+ggplot(survey) + 
+  geom_line(aes(x=Qtime, y=number_responses)) + 
+  ggtitle(sprintf("%s Survey Responses Over Time (N = %d)",language, respondents)) + 
+  labs(y = "Time", x = "Response Date")
+
+```
+
+---
+class: inverse, middle
+
+# Demographics
+
+---
+
+# Respondent Ages
+
+```{r Respondent Ages}
+
+ggplot(survey) +
+  geom_histogram(aes(2018 - Qyear_born), binwidth = 5,  fill = bar_color, color="black") +
+  scale_x_continuous(breaks = seq(15,80,5)) +
+  labs(title = "Respondent Ages (Histogram)", x="Age", y="Count")
+```
+
+---
+
+# Respondent Gender
+
+```{r Respondent Gender}
+
+genders <- survey %>% 
+  group_by(Qgender_coded) %>% 
+  count(sort = TRUE) %>% 
+  mutate(unit = 1) %>% 
+  drop_na()
+
+gender_responses <- sum(genders$n, na.rm = TRUE)
+genders <- genders %>% 
+  group_by(unit) %>% 
+  mutate(percent = round(n / gender_responses * 100),
+         position = cumsum(percent) - percent / 2,
+         label = ifelse(percent >= 10, paste0(percent, "%"), "")) %>% 
+  arrange(desc(percent))
+
+ggplot(genders, aes(x = "", y = percent, fill = Qgender_coded)) +
+    geom_bar(width = 1, size = 1, color = "gray90", stat = "identity", alpha = 0.7) +
+    coord_polar("y") +
+    geom_text(aes(label = paste0(round(percent), "%")), 
+              position = position_stack(vjust = 0.5)) +
+    labs(x = NULL, y = NULL, fill = NULL, 
+         title = "Respondent Gender", 
+         subtitle = question_text("Qgender"), 
+         caption = "2018 RStudio Learning R Survey") +
+    guides(fill = guide_legend()) +
+    scale_fill_brewer(palette = "Set1") +
+    theme_classic() +
+    theme(axis.line = element_blank(),
+          axis.text = element_blank(),
+          axis.ticks = element_blank())
+```
+
+---
+
+# Respondent Countries
+
+```{r Respondent Countries}
+countries <- survey %>% count(Qcountry, sort=TRUE) %>% drop_na()
+names(countries) <- c("region", "value")
+countries <- countries %>% mutate(region = tolower(region))
+unknown_countries <- c("singapore", "korea", "south", "serbia and montenegro", "hong kong", "andorra", "bahrain", "christmas island", "macau", "mauritius", "puerto rico", "tanzania")
+choro_countries <- countries %>% filter(!(region %in% unknown_countries))
+choro_countries <- choro_countries %>% mutate(region = str_replace_all(region, "korea, south", "south korea"))
+
+
+data(country.map)
+
+# country_choropleth(choro_countries, title = "", legend = "", num_colors = 8,
+#  zoom = NULL)
+
+plot_countries <- country.map %>% left_join(choro_countries, by = "region")
+ggplot(data = plot_countries, aes(long, lat, group=group)) + 
+  geom_polygon(aes(fill = value), color = "gray", size=0.1) +
+  scale_fill_gradient(trans = "log10", low = "dark blue", high = "yellow") +
+  coord_fixed(1.3) +
+  scale_x_continuous(breaks = seq(-150, 150, 60)) +
+  scale_y_continuous(breaks = seq(-60, 90, 30), limits = c(-60, 90)) +
+  labs(title = "Geographical Distribution of Survey Respondents", 
+       subtitle = question_text("Qcountry"),
+       caption = "2018 RStudio Learning R Survey",
+       x = "", y = "", fill = "Responses")
+```
+
+---
+
+# Industry
+
+```{r Respondent industry}
+industry <- survey %>% count(Qindustry, sort = TRUE)
+industry_responses <- sum(!is.na(survey$Qindustry))
+industry <- industry %>% mutate(percent = round(n / industry_responses * 100, 0))
+
+top_10_industries <- top_n_choices(industry, Qindustry, industry_responses, 10)
+
+# ggplot(industry, aes(area = percent, fill = as.numeric(percent), label = sprintf("%s\n%d%%", Qindustry, percent))) +
+#  geom_treemap() +
+#  geom_treemap_text(color = "white", 
+#                    place = "center",
+#                    reflow = TRUE) +
+#  scale_fill_continuous(type = "gradient") +
+#  labs(title = "Respondent Industry")
+
+top_10_industries <- top_10_industries %>% 
+  mutate(short_industry = str_replace(Qindustry, " \\(Federal, State, or Local\\)", ""),
+         short_industry = str_replace(short_industry, "Services", "Svcs."),
+         short_industry = str_replace(short_industry, "Information Technologies", "Info. Tech."),
+         short_industry = str_replace(short_industry, "Professional and ", "Prof./"),
+         short_industry = str_replace(short_industry, " and Activities", ""),
+         short_industry = str_replace(short_industry, " and Medicine", ""),
+         short_industry = str_replace(short_industry, " Resources and ", " Resources/"),
+         short_industry = str_replace(short_industry, " and ", " & "))
+         
+top_10_industries <- top_10_industries %>% 
+  mutate(Qindustry = factor(Qindustry, levels = Qindustry),
+         position = cumsum(percent) - percent / 2,
+         label = ifelse(percent >= 5, paste0(short_industry, "\n", round(percent), "%"), ""))
+
+ggplot(top_10_industries) +
+    geom_col(aes(x = 1, y = percent, fill = Qindustry), 
+             width = 1, size = 1, color = "gray90") +
+    geom_text(aes(x = 1.2, y = 100 - position, label = label),
+              size = 3,
+              hjust = 0.4,
+              color = "black"
+#              direction = "both",
+    ) +
+    labs(x = NULL, y = NULL, 
+         title = "Respondent Industry",
+         subtitle = question_text("Qindustry"),
+         caption = "2018 RStudio Learning R Survey") +
+    guides(fill = guide_legend()) +
+    scale_fill_viridis_d("Industry", option = "B", direction = 1, alpha = 0.4) +
+    theme(legend.key.width=unit(1, "cm")) +
+    theme_classic() +
+    coord_polar("y") +
+    theme(axis.line = element_blank(),
+         axis.text = element_blank(),
+         axis.ticks = element_blank())
+
+```
+
+
+
+---
+
+# Respondent Ages By Learner Type
+
+```{r R Learning Ages By Learner Type}
+
+ggplot(filter(survey, !is.na(learner_type)), aes(x = 2018 - Qyear_born, group = learner_type)) +
+  geom_density(aes(fill = learner_type), color="black", alpha = 0.5) +
+  scale_fill_brewer(palette = "Set1") +
+  labs(title = "Respondent Ages (Density Plot)", 
+         caption = "2018 RStudio Learning R Survey",
+       x="Age", y="Density", fill = "Learner Type")
+```
+
+---
+
+# Year Respondents Learned R
+
+```{r Year respondents learned R}
+
+ggplot(filter(survey, Qr_year >= 1990)) +
+  geom_histogram(aes(Qr_year), binwidth = 1, fill = bar_color, color="black") +
+  scale_x_continuous(breaks = c(1990, 1995, 2000, 2005, 2010, 2015, 2018)) +
+  labs(title = "Year Started Learning R", 
+       subtitle = question_text("Qr_year"),
+       caption = "2018 RStudio Learning R Survey",
+       x="Year", y="Count")
+```
+
+
+---
+
+# Number of People You Work With That Know R By Learner Type
+
+```{r Number R Team Members}
+team_num_survey <- survey %>% filter(!is.na(learner_type))
+ggplot(team_num_survey, aes(x = Qteam_r_users, group = learner_type)) +
+  geom_density(aes(fill = learner_type), color="black", alpha = 0.5) +
+  scale_x_continuous(trans = "log10") +
+  scale_fill_brewer(palette = "Set1") +
+  labs(title = "Number of Team Members Who Know R (Density Plot)", 
+       subtitle = question_text("Qteam_r_users"),
+       caption = "2018 RStudio Learning R Survey",
+       x="Number", y="Density", fill = "Learner Type")
+```
+
+---
+
+# Difficulty of Learning R based on Learner Type
+
+```{r Ages By Learner Type}
+
+ss <- survey %>% filter(!is.na(learner_type) & !is.na(Qr_difficulty_experienced))
+ss_grouped <- ss %>% 
+  group_by(learner_type, Qr_difficulty_experienced) %>% 
+  count(Qr_difficulty_experienced)
+ggplot(ss) +
+  geom_bar(aes(x = Qr_difficulty_experienced, y = ..prop.., fill = learner_type, group = learner_type),
+           position = position_dodge(width = 0.5),
+           alpha = 0.5) +
+  scale_y_continuous(labels = scales::percent) +
+  scale_fill_brewer(palette = "Set1") +
+  labs(title = "Difficulty in Learning R", 
+       subtitle = question_text("Qr_difficulty_experienced"),
+       caption = "2018 RStudio Learning R Survey",
+ x="Respondent Rating (5 = Most Difficult)", y="", fill = "Learner Type")
+```
+
+---
+
+# What is R Used For?
+
+```{r R Used For}
+# Breaks up uses into nested lists
+uses <- survey %>% mutate(application = map(Qused_for, str_split, ", ")) %>% unnest()
+tools_used <- uses %>% unnest() %>% group_by(application) %>% count(sort=TRUE)
+# Count the non-NA entries now
+use_responses <- survey %>% summarize(responses = sum(!is.na(Qused_for)))
+tools_used <- tools_used %>% mutate(percent = round(n / use_responses$responses * 100)) %>% arrange(desc(percent))
+app_plot <- head(tools_used, 15) %>% ungroup()
+other <- tail(tools_used, -15) %>% 
+  ungroup() %>% 
+  summarize(application = "Other", 
+            n = sum(n), 
+            percent = round(n / use_responses$responses * 100))
+app_plot <- rbind(app_plot, other) %>% drop_na()
+ggplot(app_plot) +
+  geom_col(aes(x=reorder(application, percent), y = percent),
+           fill =  bar_color) +
+  geom_text(aes(x=reorder(application, percent), y = percent / 2 + 1, label = paste0(percent, "%")), 
+            color="white", size=3) +
+  labs(title = "What Do You Use R For?", 
+       subtitle = question_text("Qused_for"),
+       caption = "2018 RStudio Learning R Survey",
+x="Application", y="Percent") +
+  coord_flip()
+
+```
+
+
+---
+name: alison-forcats
+
+# What is R used for?
+
+```{r r-used-for2}
+use_responses <- survey %>% 
+  summarize(responses = sum(!is.na(Qused_for))) %>% 
+  pull()
+
+used_for <- survey %>% 
+  separate_rows(Qused_for, sep = ", ") %>% 
+  mutate(Qused_for = str_to_title(Qused_for),
+         Qused_fct = fct_lump(as.factor(Qused_for), n = 15)) %>% 
+  count(Qused_fct, sort = TRUE) %>% 
+  drop_na(Qused_fct) %>%
+  mutate(prop_used = round(n / use_responses, 1))
+
+ggplot(used_for, aes(x = fct_reorder(Qused_fct, prop_used), 
+                     y = prop_used)) +
+  geom_col(fill =  bar_color) +
+  geom_text(aes(label = scales::percent(prop_used)), hjust = -.25, color="black", size=3) +
+  labs(title = question_text("Qused_for"),
+       caption = "2018 RStudio Learning R Survey",
+       x="Application", 
+       y="") +
+  coord_flip() +
+  scale_y_continuous(labels = scales::percent, limits = c(0, .95)) 
+
+```
+
+---
+name: alison-lollipop
+
+# What is R used for?
+
+
+```{r r-used-lollipop}
+ggplot(used_for, aes(x = fct_reorder(Qused_fct, prop_used), 
+                     y = prop_used)) +
+  geom_point(color = bar_color, size = 2) + #<<
+  geom_segment(aes(xend = fct_rev(Qused_fct), yend = 0), color = bar_color) + #<<
+  geom_text(aes(label = scales::percent(prop_used)), hjust = -.25, color="black", size=3) +
+  labs(title = question_text("Qused_for"),
+       caption = "2018 RStudio Learning R Survey",
+       x="Application", 
+       y="") +
+  coord_flip() +
+  scale_y_continuous(labels = scales::percent, limits = c(0, .95)) 
+
+```
+
+---
+
+# Net Promoter Score
+
+```{r Net Promoter Score}
+recommend_totals <-survey %>% group_by(Qrecommend) %>% tally()
+responses <- sum(recommend_totals$n, na.rm = TRUE)
+recommend_totals <- recommend_totals %>% mutate(percent = n / responses * 100)
+recommend_scores <- tibble(Qrecommend = 1:10) %>% left_join(recommend_totals, by = "Qrecommend")
+nps <- round(sum(recommend_scores$percent[9:10], na.rm=TRUE) - 
+               sum(recommend_scores$percent[1:6], na.rm=TRUE))  # Standard NPS formula (see Wikipedia)
+npr <- nps %>% cut(breaks = c(-100, 0, 50, 75, 100), labels = c("Dangerous", "Good", "Excellent", "World Class"))
+
+ggplot(recommend_scores) +
+  geom_col(aes(x = Qrecommend, y = percent), fill = bar_color, color="black") +
+  geom_text(aes(x = Qrecommend, y = percent + 3, label = paste0(round(percent), "%")), 
+            color="black", size=3) +
+  scale_x_continuous(breaks = 1:10) +
+    labs(title = question_text("Qrecommend"),
+       subtitle = sprintf("Net Promoter Score = %s,        Rating: %s", nps, npr),
+       caption = "2018 RStudio Learning R Survey",
+       x="Score", y="Count")
+```
+
+---
+
+# What Tools Do You Use With R?
+
+```{r R Tools Used}
+
+uses <- survey %>% transmute(tools = str_replace_all(Qtools_with_r, "i.e., ", ""))
+num_tool_responses <- sum(!is.na(survey$Qtools_with_r))
+tools_used <- split_and_aggregate(uses, tools)
+tools_used <- tools_used %>% 
+  select(-num_responses) %>% 
+  mutate(percent = round(n / num_tool_responses * 100))
+top_15_items <- top_n_choices(tools_used, items, num_tool_responses, 15)
+
+# Plot
+ggplot(top_15_items) +
+  geom_col(aes(x=reorder(items, percent), y = percent),
+           fill =  bar_color) +
+  geom_text(aes(x=reorder(items, percent), y = percent / 2, label = paste0(percent, "%")), 
+            color="white", size=3) +
+  labs(title = "What Tools Do You Use With R?", 
+       subtitle = question_text("Qtools_with_r"),
+       caption = "2018 RStudio Learning R Survey",
+       x="Tool", y="Percent") +
+  coord_flip()
+
+```
