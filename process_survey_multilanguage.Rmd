@@ -598,7 +598,7 @@ top_15_items <- top_15_items %>%
 bar_chart(top_15_items, 
           column_name = items, 
           fill_color = params$bar_colors, 
-          title_string = "What Languages Do You Use Besides R? (All Respondents)",
+          title_string = "What Languages Do You Use Besides R (All Respondents)",
           subtitle_string = question_text("Qlanguages"),
           caption_string = paste0(survey_name, ", n = ", num_language_responses))
 
@@ -731,7 +731,7 @@ pie_chart(df                 = r_experience,
 
 ```
 
-## How Did You Learn R?  (R Users Only)
+## How Did You Learn R  (R Users Only)
 
 ```{r How Did You Learn R, echo = TRUE}
 # We shorten down the given answers while categorizing open-text answers given for "Other"
@@ -871,7 +871,7 @@ ggplot(app_plot) +
            fill =  params$bar_colors) +
   geom_text(aes(x=application, y = percent / 2, label = paste0(percent, "%")), 
             color="gray80", size=3, nudge_y = 1) +
-  labs(title = "What Do You Use R For (R Users Only)?", 
+  labs(title = "What Do You Use R For (R Users Only)", 
        subtitle = question_text("Qused_for"),
        caption = paste0(survey_name, ", n = ", use_responses$responses),
        x="", y="") +
@@ -923,10 +923,10 @@ top_15_items <- top_15_items %>%
 bar_chart(top_15_items, 
           column_name = items, 
           fill_color = params$bar_colors, 
-          title_string = "What Tools Do You Use With R?  (R Users Only)",
+          title_string = "What Tools Do You Use With R? (R Users Only)",
           subtitle_string = question_text("Qtools_with_r"),
           caption_string = paste0(survey_name, ", n = ", num_tool_responses))
-  ggsave("plots/What Tools Do You Use With R?  (R Users Only).pdf")
+  ggsave("plots/What Tools Do You Use With R (R Users Only).pdf")
 ```
 
 ## Greatest Difficulty in Learning R.
