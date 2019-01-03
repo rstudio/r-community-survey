@@ -32,6 +32,8 @@ library(RColorBrewer)
 library(gendercodeR)
 library(ggrepel)
 library(extrafont)
+library(ggalt)    # devtools::install_github("hrbrmstr/ggalt")
+library(ggthemes) # theme_map 
 
 # for plots
 survey_name <- "2018 RStudio Learning R Survey"
@@ -342,7 +344,7 @@ survey <- survey %>% mutate(number_responses = cumsum(!is.na(Qtime)))
 ggplot(survey) + 
   geom_line(aes(x=Qtime, y=number_responses)) + 
   ggtitle(sprintf("%s Survey Responses Over Time (N = %d)", params$language, respondents)) + 
-  labs(y = "Time", x = "Response Date")
+  labs(y = "Count", x = "Response Date")
 ```
 ]
 
@@ -362,8 +364,9 @@ class: middle
 
 ```{r Respondent Ages}
 ggplot(survey) +
-  geom_histogram(aes(2018 - Qyear_born), binwidth = 5,  fill = params$bar_colors, color="black") +
-  scale_x_continuous(breaks = seq(15,80,5)) +
+  geom_histogram(aes(2018 - Qyear_born), binwidth = 5, fill = params$bar_colors,
+                 color=params$bar_colors, alpha = .7) +
+  #scale_x_continuous(breaks = seq(15,80,5)) +
   labs(x="Age", y="Count")
 ```
 
@@ -444,21 +447,69 @@ name: alison-gender-age
 
 ```{r Respondent Gender Age}
 minority_genders <- survey %>% 
-  mutate(Qgender_coded = forcats::fct_lump(as.factor(Qgender_coded), n = 3)) %>% 
+  mutate(Qgender_coded = forcats::fct_lump(as.factor(Qgender_coded), 
+                                           n = 2, 
+                                           other_level = "sex & gender diverse")) %>% 
   drop_na(Qgender_coded) %>% 
   filter(!Qyear_born == 2018)
 ggplot(minority_genders, aes(2018 - Qyear_born, fill = Qgender_coded)) +
-  geom_histogram(binwidth = 2, colour = "white", alpha = .8) +
+  geom_histogram(data = filter(minority_genders, Qgender_coded == 'male'),
+                 binwidth = 2, colour = "white", alpha = .8) +
+  geom_histogram(data = filter(minority_genders, Qgender_coded == 'female'),
+                 binwidth = 2, colour = "white", alpha = .8) +
+  geom_histogram(data = filter(minority_genders, Qgender_coded == 'sex & gender diverse'),
+                 binwidth = 2, colour = "white", alpha = .8) +
   #scale_x_continuous(breaks = seq(15,80,5)) +
   labs(x="Age", y="Count", fill = "") +
-  scale_fill_viridis_d(begin = .2, end = 1) +
+  scale_fill_viridis_d() +
   theme(legend.position="bottom")
 ```
 
 ]
----
 
-# Respondent Countries
+
+
+---
+class: middle
+name: alison-facet-background
+
+.left-column[
+
+### Minority Gender Representation
+]
+
+.right-column[
+
+```{r Respondent Gender Age Facet}
+minority_genders <- survey %>% 
+  mutate(Qgender_coded = forcats::fct_lump(as.factor(Qgender_coded), n = 1, other_level = "non-male")) %>% 
+  drop_na(Qgender_coded) %>% 
+  filter(!Qyear_born == 2018) 
+ggplot(minority_genders, aes(2018 - Qyear_born)) +
+  geom_histogram(data = select(minority_genders, -Qgender_coded),
+                 binwidth = 2, alpha = .3) +
+  geom_histogram(aes(fill = Qgender_coded), binwidth = 2, colour = "white", alpha = .8) +
+  labs(x="Age", y="Count", fill = "") +
+  scale_fill_viridis_d(begin = .2, end = 1) +
+  facet_wrap(~ Qgender_coded) +
+  guides(fill = FALSE)  # to remove the legend
+```
+
+]
+
+???
+
+The grey histograms are the background data
+
+
+---
+class: middle
+
+.left-column[
+## Respondent Countries
+]
+
+.right-column[
 
 ```{r Respondent Countries}
 countries <- survey %>% count(Qcountry, sort=TRUE) %>% drop_na()
@@ -483,6 +534,59 @@ ggplot(data = plot_countries, aes(long, lat, group=group)) +
        caption = survey_name,
        x = "", y = "", fill = "Responses")
 ```
+
+]
+---
+class: middle
+name: alison-map
+
+.left-column[
+## Geographic Diversity
+]
+
+.right-column[
+
+```{r}
+world <- map_data("world")
+world <- world[world$region != "Antarctica",] # intercourse antarctica
+ 
+countries <- survey %>% 
+  count(Qcountry, sort=TRUE) %>% 
+  drop_na() %>% 
+  mutate(Qcountry = case_when(
+    Qcountry == "United States of America" ~ "USA",
+    Qcountry == "United Kingdom" ~ "UK",
+    Qcountry == "Korea, South" ~ "South Korea",
+    TRUE ~ Qcountry
+  )) %>% 
+  filter(Qcountry %in% world$region) %>% 
+  left_join(world, by = c("Qcountry" = "region"))
+ 
+gg <- ggplot()
+gg <- gg + geom_map(data=world, map=world,
+                    aes(x=long, y=lat, map_id=region),
+                    color="white", fill="#7f7f7f", size=0.05, alpha=1/4)
+gg <- gg + geom_map(data=countries, map=world,
+                    aes(x=long, y=lat, map_id=Qcountry, fill = n),
+                    size=0.05, alpha=3/4)
+gg <- gg + coord_proj("+proj=wintri")
+gg <- gg + theme_map(base_size = 18, base_family = "Lato")
+gg <- gg + theme(strip.background=element_blank())
+gg <- gg + scale_fill_viridis_c(trans = "log10", alpha = .9, end = .9) 
+gg <- gg + labs(subtitle = question_text("Qcountry"),
+       caption = survey_name,
+       x = "", y = "", fill = "Responses") 
+gg <- gg + theme(plot.subtitle = element_text(hjust = 1)) 
+gg
+```
+
+]
+
+
+
+???
+
+Using help from Bob Rudis (https://rud.is/b/2015/12/28/world-map-panel-plots-with-ggplot2-2-0-ggalt/)
 
 ---
 
@@ -946,7 +1050,7 @@ class: middle
 .right-column[
 
 
-```{r R Used For}
+```{r R Used For, eval = FALSE}
 # Breaks up uses into nested lists
 uses <- survey %>% mutate(application = map(Qused_for, str_split, ", ")) %>% unnest()
 tools_used <- uses %>% unnest() %>% group_by(application) %>% count(sort=TRUE)
