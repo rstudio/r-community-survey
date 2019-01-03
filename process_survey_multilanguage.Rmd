@@ -14,7 +14,7 @@ resource_files:
  - "images/temp-packages.png"
 subtitle: 14 January 2019
 params:
-  bar_colors: dark green
+  bar_colors: "#77ADDB"
   language: English
 ---
 
@@ -204,6 +204,46 @@ bar_chart <- function(df,
   ggsave(filename = paste0("plots/", title_string, ".pdf"))
   return(p)
 }
+
+## Plot a simple horizontal bar chart with counts instead of percentages. 
+## The call form is a little baroque, so here's an example
+## to illustrate the mapping of values to arguments.
+##     bar_chart(df = ethnicities, 
+##               column_name            = Qethnicity_coded, 
+##               original_column_string = "Qethnicity",
+##               text_position          = position        ## the name of the position column in the df
+##               title_string           = "Ethnicities", 
+##               fill_legend_title      = "Respondent Ethnicity"
+##               colors                 = "Set1"         From the RColorBrewer palettes
+
+bar_chart_counts <- function(df,
+                     column_name, 
+                     fill_color,
+                     title_string,
+                     subtitle_string = "",
+                     caption_string = survey_name) {
+  
+  quoted_column <- enquo(column_name)
+  nudge_amount <- max(df$n, rm.na = TRUE) * 0.05
+  p <- ggplot(df) +
+    geom_col(aes(x = !!quoted_column, y = n),
+             fill =  fill_color) +
+    geom_text(aes(x = !!quoted_column, y = n , 
+                  label = n), 
+              color="gray30", size=3, nudge_y = nudge_amount) +
+    labs(title = title_string, 
+         subtitle = subtitle_string,
+         caption = caption_string,
+         x="", y="") +
+    coord_flip() +
+    theme(axis.line = element_blank(),
+          axis.text.x = element_blank(),
+          axis.ticks = element_blank())
+  print(p)
+  ggsave(filename = paste0("plots/", title_string, ".pdf"))
+  return(p)
+}
+
 ```
 
 
@@ -1017,3 +1057,304 @@ pie_chart(df                 = tidyverse_use,
 ggsave("plots/Tidyverse Use Frequency Today (R Users Only).pdf")
 ```
 
+<<<<<<< HEAD
+## Shiny Use (R Users Only)
+
+```{r shiny, echo = TRUE}
+
+shiny_use <- tally_question(survey, Qshiny, rm.na = TRUE, sort = TRUE)
+shiny_use_responses <- first(shiny_use$nn)
+shiny_use <- shiny_use %>% 
+ mutate(Qshiny_factor = factor(Qshiny, levels = rev(Qshiny)),
+         position = cumsum(percent) - percent / 2,
+         label = ifelse(percent >= 2, paste0(Qshiny, "\n", round(percent), "%"), ""))
+
+bar_chart(df                 = shiny_use,
+          column_name        = Qshiny_factor,
+          title_string           = "Shiny Use Today (R Users Only)",
+          subtitle_string        = question_text("Qshiny", 40),
+          caption_string         = paste0(survey_name, ", n = ",shiny_use_responses),
+          fill_color             = params$bar_colors)
+ggsave("plots/Shiny Use Frequency Today (R Users Only).pdf")
+```
+
+
+## Version Control Use (R Users Only)
+
+```{r version control, echo = TRUE}
+
+version_control_responses <- survey %>% 
+  transmute(Qversion_control = str_replace_all(Qversion_control, c(" -- .*$" = "", "\\.$" = "")))
+version_control_use <- tally_question(version_control_responses, Qversion_control, rm.na = TRUE, sort = TRUE)
+version_control_use_responses <- first(version_control_use$nn)
+version_control_use <- version_control_use %>% 
+ mutate(Qversion_control_factor = factor(Qversion_control, levels = rev(Qversion_control)),
+         position = cumsum(percent) - percent / 2,
+         label = ifelse(percent >= 2, paste0(Qversion_control, "\n", round(percent), "%"), ""))
+
+bar_chart(df                 = version_control_use,
+          column_name        = Qversion_control_factor,
+          title_string           = "Unit Test Use (R Users Only)",
+          subtitle_string        = question_text("Qversion_control", 60),
+          caption_string         = paste0(survey_name, ", n = ",version_control_use_responses),
+          fill_color             = params$bar_colors)
+ggsave("plots/Unit Test Use (R Users Only).pdf")
+```
+
+## Unit Tests (R Users Only)
+
+```{r Unit Tests, echo = TRUE}
+
+unit_tests_responses <- survey %>% 
+  transmute(Qunit_tests = str_replace_all(Qunit_tests, c(" -- .*$" = "", "\\.$" = "")))
+unit_tests_use <- tally_question(unit_tests_responses, Qunit_tests, rm.na = TRUE, sort = TRUE)
+unit_tests_use_responses <- first(unit_tests_use$nn)
+unit_tests_use <- unit_tests_use %>% 
+ mutate(Qunit_tests_factor = factor(Qunit_tests, levels = rev(Qunit_tests)),
+         position = cumsum(percent) - percent / 2,
+         label = ifelse(percent >= 2, paste0(Qunit_tests, "\n", round(percent), "%"), ""))
+
+bar_chart(df                 = unit_tests_use,
+          column_name        = Qunit_tests_factor,
+          title_string           = "Version Control Use Today (R Users Only)",
+          subtitle_string        = question_text("Qunit_tests", 60),
+          caption_string         = paste0(survey_name, ", n = ",unit_tests_use_responses),
+          fill_color             = params$bar_colors)
+ggsave("plots/Version Control Use Frequency (R Users Only).pdf")
+```
+
+## Packages We Cannot Live Without (R Users Only)
+
+```{r Packages We Cannot Live Without, echo = TRUE}
+library(tidytext)
+data(stop_words)
+
+packages_answers <- survey %>% select(Qnot_live_without) %>% filter(!is.na(Qnot_live_without))
+packages_answers <- packages_answers %>% 
+  mutate(packages = str_trim(tolower(Qnot_live_without)))
+tidy_packages <- packages_answers %>% unnest_tokens(words, packages)
+tidy_packages <- tidy_packages %>% anti_join(stop_words, by = c("words" = "word"))
+
+# We now need to clean up some counts; for example, ggplot and ggplot2 are the same thing.
+# Also, words like data and packages aren't package names
+
+# First words we should just remove
+non_capability_words <- tibble(word = c("ability", "data", "packages", "package", "live", "easier", 
+                                        "function", "functional", "functions", "entire", "easy",
+                                        "machine", "learning", "capability", "general",
+                                        "manipulation", "visualization", "plotting", "love",
+                                        "code", "guess", "question"),
+                       lexicon = "adhoc")
+tidy_packages <- tidy_packages <- tidy_packages %>% anti_join(non_capability_words, by = c("words" = "word"))
+
+# Now do replacements
+replacements <- c("ggplot2" = "ggplot", "rstudio" = "RStudio IDE", "^tidy$" = "tidyverse", "^pipe$" = "magrittr")
+tidy_packages <- tidy_packages %>% 
+  mutate(changed_words = str_replace_all(words, replacements))
+package_counts <- tidy_packages %>% 
+  count(changed_words, sort = TRUE) %>% 
+  rename(capability = changed_words)
+
+num_package_responses <- nrow(tidy_packages)
+packages_list <- package_counts %>% 
+  mutate(percent = round(n / num_package_responses * 100)) %>% 
+  select(-num_package_responses)
+top_25_packages <- head(packages_list, 25)
+top_25_packages <- top_25_packages %>%
+  mutate(capability = factor(as.character(capability), levels = rev(capability)))
+
+bar_chart_counts(top_25_packages, 
+          column_name = capability, 
+          fill_color = params$bar_colors, 
+          title_string = "Capabilities Users Cannot Live Without (R Users Only)",
+          subtitle_string = paste0(question_text("Qnot_live_without", 40), " (Number of mentions shown)"),
+          caption_string = paste0(survey_name, ", Total Mentions = ", num_package_responses))
+ggsave("plots/R Capabilities Users Cannot Live Without (R Users Only).pdf")
+```
+
+## Things Users Like Best About R (R Users Only)
+
+```{r Like Best About R, echo = TRUE}
+likebest_answers <- survey %>% select(Qlike_best) %>% filter(!is.na(Qlike_best))
+likebest_answers <- likebest_answers %>% 
+  mutate(likebest = str_trim(tolower(Qlike_best)))
+tidy_likebest <- likebest_answers %>% unnest_tokens(words, likebest)
+tidy_likebest <- tidy_likebest %>% anti_join(stop_words, by = c("words" = "word"))
+
+# We now need to clean up some counts; for example, ggplot and ggplot2 are the same thing.
+# Also, words like data and likebest aren't package names
+
+# First words we should just remove
+non_capability_words <- tibble(word = c("ability", "data", "package", "live", "easier", 
+                                        "function", "functional", "functions", "entire", "easy",
+                                        "machine", "learning", "capability", "general",
+                                        "love", "lot",
+                                        "code", "guess", "question", "makes", "online", "learn"),
+                       lexicon = "adhoc")
+tidy_likebest <- tidy_likebest <- tidy_likebest %>% anti_join(non_capability_words, by = c("words" = "word"))
+
+# Now do replacements
+replacements <- c("ggplot2" = "ggplot", "rstudio" = "RStudio", "powerful" = "power")
+tidy_likebest <- tidy_likebest %>%
+  mutate(changed_words = str_replace_all(words, replacements))
+likebest_counts <- tidy_likebest %>% 
+  count(changed_words, sort = TRUE) %>% 
+  rename(capability = changed_words)
+
+num_likebest_responses <- nrow(tidy_likebest)
+likebest_list <- likebest_counts %>% 
+  mutate(percent = round(n / num_likebest_responses * 100)) %>% 
+  select(-num_likebest_responses)
+top_25_likebest <- head(likebest_list, 25)
+top_25_likebest <- top_25_likebest %>%
+  mutate(capability = factor(as.character(capability), levels = rev(capability)))
+
+bar_chart_counts(top_25_likebest, 
+          column_name = capability, 
+          fill_color = params$bar_colors, 
+          title_string = "Capabilities Users Like Best (R Users Only)",
+          subtitle_string = paste0(question_text("Qlike_best", 40), " (Number of mentions shown)"),
+          caption_string = paste0(survey_name, ", Total Mentions = ", num_likebest_responses))
+ggsave("plots/R Capabilities Users Like Best (R Users Only).pdf")
+```
+
+## Things Users Like least About R (R Users Only)
+
+```{r Like Least About R, echo = TRUE}
+likeleast_answers <- survey %>% select(Qlike_least) %>% filter(!is.na(Qlike_least))
+likeleast_answers <- likeleast_answers %>% 
+  mutate(likeleast = str_trim(tolower(Qlike_least)))
+tidy_likeleast <- likeleast_answers %>% unnest_tokens(words, likeleast)
+tidy_likeleast <- tidy_likeleast %>% anti_join(stop_words, by = c("words" = "word"))
+
+# We now need to clean up some counts; for example, ggplot and ggplot2 are the same thing.
+
+# First words we should just remove
+non_capability_words <- tibble(word = c("ability", "data", "package", "live", "easier", 
+                                        "function", "functional", "functions", "entire", "easy",
+                                        "machine", "learning", "capability", "general",
+                                        "love", "lot", "hard", "lack", "curve",
+                                        "code", "guess", "question", "makes", "online", "learn"),
+                       lexicon = "adhoc")
+tidy_likeleast <- tidy_likeleast <- tidy_likeleast %>% anti_join(non_capability_words, by = c("words" = "word"))
+
+# Now do replacements
+replacements <- c("ggplot2" = "ggplot", "rstudio" = "RStudio", "powerful" = "power")
+tidy_likeleast <- tidy_likeleast %>%
+  mutate(changed_words = str_replace_all(words, replacements))
+likeleast_counts <- tidy_likeleast %>% 
+  count(changed_words, sort = TRUE) %>% 
+  rename(capability = changed_words)
+
+num_likeleast_responses <- nrow(tidy_likeleast)
+likeleast_list <- likeleast_counts %>% 
+  mutate(percent = round(n / num_likeleast_responses * 100)) %>% 
+  select(-num_likeleast_responses)
+top_25_likeleast <- head(likeleast_list, 25)
+top_25_likeleast <- top_25_likeleast %>%
+  mutate(capability = factor(as.character(capability), levels = rev(capability)))
+
+bar_chart_counts(top_25_likeleast, 
+          column_name = capability, 
+          fill_color = params$bar_colors, 
+          title_string = "Capabilities Users Like Least (R Users Only)",
+          subtitle_string = paste0(question_text("Qlike_least", 40), " (Number of mentions shown)"),
+          caption_string = paste0(survey_name, ", Total Mentions = ", num_likeleast_responses))
+ggsave("plots/R Capabilities Users Like Least (R Users Only).pdf")
+```
+
+||||||| merged common ancestors
+=======
+## Shiny Use (R Users Only)
+
+```{r shiny, echo = TRUE}
+
+shiny_use <- tally_question(survey, Qshiny, rm.na = TRUE, sort = TRUE)
+shiny_use_responses <- first(shiny_use$nn)
+shiny_use <- shiny_use %>% 
+ mutate(Qshiny_factor = factor(Qshiny, levels = rev(Qshiny)),
+         position = cumsum(percent) - percent / 2,
+         label = ifelse(percent >= 2, paste0(Qshiny, "\n", round(percent), "%"), ""))
+
+bar_chart(df                 = shiny_use,
+          column_name        = Qshiny_factor,
+          title_string           = "Shiny Use Today (R Users Only)",
+          subtitle_string        = question_text("Qshiny", 40),
+          caption_string         = paste0(survey_name, ", n = ",shiny_use_responses),
+          fill_color             = params$bar_colors)
+ggsave("plots/Shiny Use Frequency Today (R Users Only).pdf")
+```
+
+
+## Version Control Use (R Users Only)
+
+```{r version control, echo = TRUE}
+
+version_control_responses <- survey %>% 
+  transmute(Qversion_control = str_replace_all(Qversion_control, c(" -- .*$" = "", "\\.$" = "")))
+version_control_use <- tally_question(version_control_responses, Qversion_control, rm.na = TRUE, sort = TRUE)
+version_control_use_responses <- first(version_control_use$nn)
+version_control_use <- version_control_use %>% 
+ mutate(Qversion_control_factor = factor(Qversion_control, levels = rev(Qversion_control)),
+         position = cumsum(percent) - percent / 2,
+         label = ifelse(percent >= 2, paste0(Qversion_control, "\n", round(percent), "%"), ""))
+
+bar_chart(df                 = version_control_use,
+          column_name        = Qversion_control_factor,
+          title_string           = "Version Control Use Today (R Users Only)",
+          subtitle_string        = question_text("Qversion_control", 60),
+          caption_string         = paste0(survey_name, ", n = ",version_control_use_responses),
+          fill_color             = params$bar_colors)
+ggsave("plots/Version Control Use Frequency (R Users Only).pdf")
+```
+
+## Packages We Can't Live Without (R Users Only)
+
+```{r Packages We Cannot Live Without, echo = TRUE}
+library(tidytext)
+data(stop_words)
+
+packages_answers <- survey %>% select(Qnot_live_without) %>% filter(!is.na(Qnot_live_without))
+packages_answers <- packages_answers %>% 
+  mutate(packages = str_trim(tolower(Qnot_live_without)))
+tidy_packages <- packages_answers %>% unnest_tokens(words, packages)
+tidy_packages <- tidy_packages %>% anti_join(stop_words, by = c("words" = "word"))
+
+# We now need to clean up some counts; for example, ggplot and ggplot2 are the same thing.
+# Also, words like data and packages aren't package names
+
+# First words we should just remove
+non_capability_words <- tibble(word = c("ability", "data", "packages", "package", "live", "easier", 
+                                        "function", "functional", "functions", "entire", "easy",
+                                        "machine", "learning", "capability", "general",
+                                        "manipulation", "visualization", "plotting", "love",
+                                        "code", "guess", "question"),
+                       lexicon = "adhoc")
+tidy_packages <- tidy_packages <- tidy_packages %>% anti_join(non_capability_words, by = c("words" = "word"))
+
+# Now do replacements
+replacements <- c("ggplot2" = "ggplot", "rstudio" = "RStudio IDE", "^tidy$" = "tidyverse", "^pipe$" = "magrittr")
+tidy_packages <- tidy_packages %>% 
+  mutate(changed_words = str_replace_all(words, replacements))
+package_counts <- tidy_packages %>% 
+  count(changed_words, sort = TRUE) %>% 
+  rename(capability = changed_words)
+
+num_package_responses <- nrow(tidy_packages)
+packages_list <- package_counts %>% 
+  mutate(percent = round(n / num_package_responses * 100)) %>% 
+  select(-num_package_responses)
+top_25_packages <- top_n_choices(packages_list, capability, num_package_responses, 25)
+top_25_packages <- top_25_packages %>%
+  mutate(capability = factor(as.character(capability), levels = rev(capability)))
+
+bar_chart(top_25_packages, 
+          column_name = capability, 
+          fill_color = params$bar_colors, 
+          title_string = "Capabilities Users Cannot Live Without (R Users Only)",
+          subtitle_string = question_text("Qnot_live_without", 40),
+          caption_string = paste0(survey_name, ", Mentions = ", num_package_responses))
+ggsave("plots/R Capabilities Users Cannot Live Without (R Users Only).pdf")
+```
+
+>>>>>>> 41f08f63fb291a93f134a3737d37c9f06753def6
