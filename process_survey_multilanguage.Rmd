@@ -163,6 +163,7 @@ pie_chart <- function(df,
           axis.text = element_blank(),
           axis.ticks = element_blank())
   print(p)
+  ggsave(filename = paste0("plots/", title_string, ".pdf"))
   return(p)
 }
 
@@ -200,6 +201,7 @@ bar_chart <- function(df,
           axis.text.x = element_blank(),
           axis.ticks = element_blank())
   print(p)
+  ggsave(filename = paste0("plots/", title_string, ".pdf"))
   return(p)
 }
 ```
@@ -323,6 +325,7 @@ ggplot(survey) +
   annotate("text", x = 43, y = 150, label = paste0("Mean age = ", round(mean_age, 1))) +
   scale_x_continuous(breaks = seq(15,80,5)) +
   labs(title = "Respondent Ages (All Respondents)", x="Age", y="Count")
+  ggsave("plots/Respondent Ages.pdf")
 ```
 
 ## Respondent Gender  (All Respondents)
@@ -379,6 +382,7 @@ ggplot(data = plot_countries, aes(long, lat, group=group)) +
        subtitle = question_text("Qcountry"),
        caption = survey_name,
        x = "", y = "", fill = "Responses")
+  ggsave("plots/Respondent Countries.pdf")
 ```
 
 ## Industry  (All Respondents)
@@ -474,7 +478,7 @@ ggplot(ethnicities) +
     theme(axis.line = element_blank(),
          axis.text = element_blank(),
          axis.ticks = element_blank())
-
+  ggsave("plots/Respondent Ethnicities.pdf")
 ```
 
 ## Education Level  (All Respondents)
@@ -626,6 +630,7 @@ ggplot(r_difficulty) +
        subtitle = question_text("Qr_difficulty_experienced", 72),
        caption = paste0(survey_name, ", n = ", diff_responses),
        x="Respondent Rating (1 = Easiest, 5 = Most Difficult)", y="")
+  ggsave("plots/Difficulty in Learning R (R Users Only).pdf")
 ```
 ## Time To R Proficiency (R Users Only)
 
@@ -739,6 +744,7 @@ ggplot(ages, aes(x = learner_type, y = age, group = learner_type)) +
                           round(mean_ages$mean_age[1]), round(mean_ages$mean_age[2])),
        caption = survey_name,
        x="Learner Type", y="Age", color = "Learner Type")
+  ggsave("plots/Respondent Age By Learner Type.pdf")
 ```
 
 ## Year Respondents Learned R (All Respondents)
@@ -754,6 +760,7 @@ ggplot(filter(survey, Qr_year >= 1990)) +
        subtitle = question_text("Qr_year"),
        caption = survey_name,
        x="Year", y="Count")
+  ggsave("plots/Year Learned R.pdf")
 ```
 
 
@@ -771,7 +778,7 @@ ggplot(team_num_survey, aes(x = learner_type, y = Qteam_r_users, group = learner
        subtitle = question_text("Qteam_r_users", 50),
        caption = survey_name,
        x="Learner Type", y="# Team Members", color = "Learner Type")
-
+  ggsave("plots/R Team Size Distribution by Learner Type.pdf")
 ```
 
 ## Difficulty of Learning R based on Learner Type
@@ -793,6 +800,7 @@ ggplot(ss) +
        subtitle = question_text("Qr_difficulty_experienced", 72),
        caption = survey_name,
        x="Respondent Rating (5 = Most Difficult)", y="", fill = "Learner Type")
+  ggsave("plots/Learning R Difficulty by Learner Type.pdf")
 ```
 
 ## What is R Used For?  (R Users Only)
@@ -831,7 +839,7 @@ ggplot(app_plot) +
     theme(axis.line = element_blank(),
         axis.text.x = element_blank(),
         axis.ticks = element_blank())
-
+  ggsave("plots/What Do You Use R For (R Users Only).pdf")
 
 ```
 
@@ -878,7 +886,7 @@ bar_chart(top_15_items,
           title_string = "What Tools Do You Use With R?  (R Users Only)",
           subtitle_string = question_text("Qtools_with_r"),
           caption_string = paste0(survey_name, ", n = ", num_tool_responses))
-
+  ggsave("plots/What Tools Do You Use With R?  (R Users Only).pdf")
 ```
 
 ## Greatest Difficulty in Learning R.
@@ -901,6 +909,7 @@ bar_chart(top_12_difficulties,
           title_string = "Difficulties In Learning R  (R Users Only)",
           subtitle_string = question_text("Qbiggest_difficulty"),
           caption_string = paste0(survey_name, ", n = ", num_difficulties))
+  ggsave("plots/Difficulties In Learning R  (R Users Only).pdf")
 
 ```
 
@@ -925,6 +934,7 @@ bar_chart(df                 = r_use_results,
           subtitle_string        = question_text("Qr_how_often_used"),
           caption_string         = paste0(survey_name, ", n = ", r_use_responses),
           fill_color             = params$bar_colors)
+ggsave("plots/Frequency of R Use (R Users Only).pdf")
 
 
 ```
@@ -958,6 +968,7 @@ ggplot(r_enjoyment) +
        subtitle = question_text("Qr_enjoyment", 60),
        caption = paste0(survey_name, ", n = ", diff_responses),
        x="Respondent Rating (1 = Not at all, 5 = A great deal)", y="")
+ggsave("plots/Enjoyment Using R (R Users Only).pdf")
 ```
 
 ## Tidyverse Learning (R Users Only)
@@ -980,7 +991,7 @@ pie_chart(df                 = learned_with_tidyverse,
           fill_legend_title      = "",
           reverse_fill_legend    = FALSE,
           colors                 = "Set1")
-
+ggsave("plots/Enjoyment Using R (R Users Only).pdf")
 ```
 
 ## Tidyverse Use (R Users Only)
@@ -1003,6 +1014,6 @@ pie_chart(df                 = tidyverse_use,
           fill_legend_title      = "",
           reverse_fill_legend    = FALSE,
           colors                 = "Set1")
-
+ggsave("plots/Tidyverse Use Frequency Today (R Users Only).pdf")
 ```
 
