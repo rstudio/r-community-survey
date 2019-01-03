@@ -4,7 +4,7 @@
     <title>Learning R Survey Results</title>
     <meta charset="utf-8">
     <meta name="author" content="Carl Howe, RStudio" />
-    <meta name="date" content="2019-01-02" />
+    <meta name="date" content="2019-01-03" />
     <link href="libs/remark-css-0.0.1/default.css" rel="stylesheet" />
     <script defer src="https://use.fontawesome.com/releases/v5.6.1/js/all.js" integrity="sha384-R5JkiUweZpJjELPWqttAYmYM1P3SNEJRM6ecTQF05pFFtxmCO+Y1CiUhvuDzgSVZ" crossorigin="anonymous"></script>
     <link rel="stylesheet" href="css/rstudio.css" type="text/css" />
@@ -40,9 +40,32 @@ class: inverse
 
 ### Our Community Survey
 
-.large[Carl Howe | rstudio::conf | 2019-01-02]
+.large[Carl Howe | rstudio::conf | 2019-01-03]
 
 &lt;!-- this ends up being the title slide since seal = FALSE--&gt;
+
+
+---
+exclude: true
+
+- All data updated as of 2019-01-03 using script in slides/R/process-survey-multilang.R
+
+- The survey data is exported from that script to slides/data/survey-&lt;language&gt;.tsv
+
+- The survey questions are exported from that script to slides/data/survey_questions.csv
+
+- Both files are then imported in this slide deck
+
+- You'll need the Lato Google fonts installed to embed it within the ggplot2 figures (https://fonts.google.com/specimen/Lato)
+
+- You'll need the following R packages installed
+
+
+
+
+???
+
+put your presenter notes here
 
 ---
 class: inverse, middle
@@ -83,7 +106,7 @@ class: middle
 
 .right-column[
 
-&lt;img src="index_files/figure-html/responses over time-1.png" width="864" /&gt;
+&lt;img src="figures/responses over time-1.png" width="864" /&gt;
 ]
 
 ---
@@ -100,7 +123,7 @@ class: middle
 
 .right-column[
 
-&lt;img src="index_files/figure-html/Respondent Ages-1.png" width="864" /&gt;
+&lt;img src="figures/Respondent Ages-1.png" width="864" /&gt;
 
 ]
 
@@ -114,7 +137,7 @@ class: middle
 
 .right-column[
 
-&lt;img src="index_files/figure-html/Respondent Gender-1.png" width="864" /&gt;
+&lt;img src="figures/Respondent Gender-1.png" width="864" /&gt;
 
 ]
 
@@ -129,7 +152,7 @@ name: alison-gender-props
 
 .right-column[
 
-&lt;img src="index_files/figure-html/Respondent Gender2-1.png" width="864" /&gt;
+&lt;img src="figures/Respondent Gender2-1.png" width="864" /&gt;
 
 ]
 
@@ -145,7 +168,7 @@ name: alison-gender-age
 
 .right-column[
 
-&lt;img src="index_files/figure-html/Respondent Gender Age-1.png" width="864" /&gt;
+&lt;img src="figures/Respondent Gender Age-1.png" width="864" /&gt;
 
 ]
 
@@ -162,7 +185,7 @@ name: alison-facet-background
 
 .right-column[
 
-&lt;img src="index_files/figure-html/Respondent Gender Age Facet-1.png" width="864" /&gt;
+&lt;img src="figures/Respondent Gender Age Facet-1.png" width="864" /&gt;
 
 ]
 
@@ -180,7 +203,7 @@ class: middle
 
 .right-column[
 
-&lt;img src="index_files/figure-html/Respondent Countries-1.png" width="864" /&gt;
+&lt;img src="figures/Respondent Countries-1.png" width="864" /&gt;
 
 ]
 ---
@@ -193,7 +216,7 @@ name: alison-map
 
 .right-column[
 
-&lt;img src="index_files/figure-html/unnamed-chunk-1-1.png" width="864" /&gt;
+&lt;img src="figures/unnamed-chunk-2-1.png" width="864" /&gt;
 
 ]
 
@@ -207,12 +230,12 @@ Using help from Bob Rudis (https://rud.is/b/2015/12/28/world-map-panel-plots-wit
 
 # Industry
 
-&lt;img src="index_files/figure-html/Respondent industry-1.png" width="864" /&gt;
+&lt;img src="figures/Respondent industry-1.png" width="864" /&gt;
 
 ---
 # Ethnicity
 
-&lt;img src="index_files/figure-html/Ethnicity-1.png" width="864" /&gt;
+&lt;img src="figures/Ethnicity-1.png" width="864" /&gt;
 
 ---
 exclude: true
@@ -235,7 +258,7 @@ exclude: true
 
 
 
-&lt;img src="index_files/figure-html/Languages Used Prior To Learning R-1.png" width="864" /&gt;
+&lt;img src="figures/Languages Used Prior To Learning R-1.png" width="864" /&gt;
 
 .footnote[
 Carl- your bar chart function here needs to be updated to use `num_language_responses`
@@ -244,7 +267,7 @@ Carl- your bar chart function here needs to be updated to use `num_language_resp
 ---
 # First Language Learned
 
-&lt;img src="index_files/figure-html/First Language or Tool Learned-1.png" width="864" /&gt;
+&lt;img src="figures/First Language or Tool Learned-1.png" width="864" /&gt;
 
 
 
@@ -257,60 +280,63 @@ class: inverse, middle
 ---
 # R Difficulty (R Users Only)
 
-&lt;img src="index_files/figure-html/Difficulty Learning R Experienced-1.png" width="864" /&gt;
+&lt;img src="figures/Difficulty Learning R Experienced-1.png" width="864" /&gt;
 
 ---
 # Time To R Proficiency (R Users Only)
 
-&lt;img src="index_files/figure-html/Time to proficiency-1.png" width="864" /&gt;
+&lt;img src="figures/Time to proficiency-1.png" width="864" /&gt;
 
 ---
 # Reason Why Learned R (R Users Only)
 
-&lt;img src="index_files/figure-html/Why Learned R-1.png" width="864" /&gt;
+&lt;img src="figures/Why Learned R-1.png" width="864" /&gt;
 
 ---
 
 # What is Your Experience with R? (All Respondents)
 
-&lt;img src="index_files/figure-html/R Experience so far-1.png" width="864" /&gt;
+&lt;img src="figures/R Experience so far-1.png" width="864" /&gt;
 
 ---
 
 # How Did You Learn R?  (R Users Only)
 
-&lt;img src="index_files/figure-html/How Did You Learn R-1.png" width="864" /&gt;
+&lt;img src="figures/How Did You Learn R-1.png" width="864" /&gt;
 
 ---
 # Respondent Ages By Learner Type
 
-&lt;img src="index_files/figure-html/R Learning Ages By Learner Type-1.png" width="864" /&gt;
+&lt;img src="figures/R Learning Ages By Learner Type-1.png" width="864" /&gt;
 
 ---
 
 # Year Respondents Learned R (All Respondents)
 
-&lt;img src="index_files/figure-html/Year respondents learned R-1.png" width="864" /&gt;
+&lt;img src="figures/Year respondents learned R-1.png" width="864" /&gt;
 
 ---
 
 # Number of People You Work With That Know R By Learner Type
 
-&lt;img src="index_files/figure-html/Number R Team Members-1.png" width="864" /&gt;
+&lt;img src="figures/Number R Team Members-1.png" width="864" /&gt;
 
 ---
 
 # Difficulty of Learning R based on Learner Type
 
-&lt;img src="index_files/figure-html/Ages By Learner Type-1.png" width="864" /&gt;
+&lt;img src="figures/Ages By Learner Type-1.png" width="864" /&gt;
 
 ---
 class: middle
 
 
 .left-column[
-# What is R Used For?
+
+## What is R Used For?
+
 ]
+
 
 .right-column[
 
@@ -323,13 +349,15 @@ name: alison-r-used-for
 class: middle
 
 .left-column[
+
 ## What is R used for?
+
 ]
 
 .right-column[
 
 
-&lt;img src="index_files/figure-html/alison-r-used-for-1.png" width="864" /&gt;
+&lt;img src="figures/alison-r-used-for-1.png" width="864" /&gt;
 ]
 
 ---
@@ -342,7 +370,7 @@ name: net-promotor-score
 
 .right-column[
 
-&lt;img src="index_files/figure-html/Net Promoter Score-1.png" width="864" /&gt;
+&lt;img src="figures/Net Promoter Score-1.png" width="864" /&gt;
 ]
 
 ---
@@ -355,7 +383,7 @@ class: middle
 
 .right-column[
 
-&lt;img src="index_files/figure-html/R Tools Used-1.png" width="864" /&gt;
+&lt;img src="figures/R Tools Used-1.png" width="864" /&gt;
 ]
 
 .footnote[
@@ -372,7 +400,7 @@ name: alison-other-tools
 
 .right-column[
 
-&lt;img src="index_files/figure-html/alison-other-tools-1.png" width="864" /&gt;
+&lt;img src="figures/alison-other-tools-1.png" width="864" /&gt;
 ]
 
 .footnote[
@@ -389,7 +417,7 @@ class: middle
 
 .right-column[
 
-&lt;img src="index_files/figure-html/Greatest difficulting learning-1.png" width="864" /&gt;
+&lt;img src="figures/Greatest difficulting learning-1.png" width="864" /&gt;
 ]
 
 ---
@@ -400,7 +428,7 @@ class: middle
 ]
 
 .right-column[
-&lt;img src="index_files/figure-html/Frequency of R Use-1.png" width="864" /&gt;
+&lt;img src="figures/Frequency of R Use-1.png" width="864" /&gt;
 ]
 
 .footnote[
@@ -417,7 +445,7 @@ class: middle
 
 .right-column[
 
-&lt;img src="index_files/figure-html/R Enjoyment-1.png" width="864" /&gt;
+&lt;img src="figures/R Enjoyment-1.png" width="864" /&gt;
 
 ]  
 
@@ -434,7 +462,7 @@ class: middle
 
 .right-column[
 
-&lt;img src="index_files/figure-html/tidyverse Learning-1.png" width="864" /&gt;
+&lt;img src="figures/tidyverse Learning-1.png" width="864" /&gt;
 ]
 
 .footnote[
@@ -449,7 +477,7 @@ class: middle
 ]
 
 .right-column[
-&lt;img src="index_files/figure-html/tidyverse-1.png" width="864" /&gt;
+&lt;img src="figures/tidyverse-1.png" width="864" /&gt;
 ]
 
 .footnote[
