@@ -1160,7 +1160,7 @@ bar_chart(df                 = version_control_use,
           subtitle_string        = question_text("Qversion_control", 60),
           caption_string         = paste0(survey_name, ", n = ",version_control_use_responses),
           fill_color             = params$bar_colors)
-ggsave("plots/Unit Test Use (R Users Only).pdf")
+ggsave("plots/Version Control Use (R Users Only).pdf")
 ```
 
 ## Unit Tests (R Users Only)
@@ -1178,11 +1178,11 @@ unit_tests_use <- unit_tests_use %>%
 
 bar_chart(df                 = unit_tests_use,
           column_name        = Qunit_tests_factor,
-          title_string           = "Version Control Use Today (R Users Only)",
+          title_string           = "Unit Testing Use Today (R Users Only)",
           subtitle_string        = question_text("Qunit_tests", 60),
           caption_string         = paste0(survey_name, ", n = ",unit_tests_use_responses),
           fill_color             = params$bar_colors)
-ggsave("plots/Version Control Use Frequency (R Users Only).pdf")
+ggsave("plots/Unit Testing Use Frequency (R Users Only).pdf")
 ```
 
 ## Packages We Cannot Live Without (R Users Only)
