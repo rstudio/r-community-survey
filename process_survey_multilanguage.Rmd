@@ -243,6 +243,63 @@ bar_chart_counts <- function(df,
   return(p)
 }
 
+# Chop and prop: 
+# input: a df, a column in that df, and (optional) number of "items" (unique responses to keep, top 15 is default)
+# output: a df with the original quoted question name/items, the items as processed by fct_lump, and the n and prop_responses for plotting (need the proportions to take advantage of scales::percent when plotting)
+chop_and_prop <- function(df, question_name, num_items = 15) {
+  quoted_question <- enquo(question_name)
+  responses <- df %>% summarize(responses = sum(!is.na(!!quoted_question))) %>% pull()
+  chops <- df %>% 
+    mutate(items = str_remove(!!quoted_question, "i.e., ")) %>% 
+    tidyr::separate_rows(items, sep = ", ") %>% 
+    mutate(items = forcats::fct_lump(as.factor(items), n = num_items))
+  prop_items <- chops %>% 
+    count(items) %>% 
+    tidyr::drop_na(items) %>% 
+    mutate(prop_responses = n / responses,
+           total_responses = responses)
+  return(prop_items)
+}
+
+## Plot a simple lollipop plot. Intended to be used after chop_and_prop
+##     lollipop_chart(df = ethnicities, 
+##               column_name            = Qethnicity_coded, 
+##               original_column_string = "Qethnicity",
+##               text_position          = position        ## the name of the position column in the df
+##               title_string           = "Ethnicities", 
+##               fill_legend_title      = "Respondent Ethnicity"
+##               colors                 = "Set1"         From the RColorBrewer palettes
+
+lollipop_chart <- function(df,
+                     column_name, 
+                     fill_color,
+                     title_string = NULL,
+                     subtitle_string = "",
+                     caption_string = survey_name,
+                     pct_accuracy = .1) {
+  
+  quoted_column <- enquo(column_name)
+  nudge_amount <- max(df$prop_responses, na.rm = TRUE) * 0.05
+  p <- ggplot(df, aes(x = fct_relevel(fct_reorder(!!quoted_column, prop_responses), "Other"), 
+                      y = prop_responses)) +
+    geom_point(color = fill_color, size = 3) +
+    geom_segment(aes(xend = fct_rev(!!quoted_column), yend = 0), 
+                 color = fill_color,
+                 size = 1.5,
+                 alpha = .7) +
+    geom_text(aes(label = scales::percent(prop_responses, accuracy = pct_accuracy)), 
+              hjust = -.25, 
+              color="black") +
+    labs(title = title_string, 
+         subtitle = subtitle_string,
+         caption = caption_string,
+         x="", y="") +
+    coord_flip() +
+    scale_y_continuous(labels = scales::percent_format(accuracy = 1), limits = c(0, .95)) 
+  print(p)
+  #return(p)
+}
+
 ```
 
 
@@ -663,7 +720,8 @@ ggplot(r_difficulty) +
                 label = paste0(round(percent * 100), "%")),
                 color = "gray30",
                 nudge_y = .03) +
-  annotate("text", x = 2, y = 0.4, label = paste0("Mean value = ", mean_difficulty)) +
+  geom_vline(aes(xintercept = mean_difficulty), color = "darkblue") +
+  annotate("text", x = 2.2, y = 0.4, label = paste0("Mean value = ", mean_difficulty)) +
   scale_y_continuous(labels = scales::percent) +
   labs(title = "Difficulty in Learning R (R Users Only)", 
        subtitle = question_text("Qr_difficulty_experienced", 72),
@@ -677,14 +735,19 @@ ggplot(r_difficulty) +
 
 r_proficiency <- tally_question(survey, Qtime_to_proficiency, rm.na = TRUE, sort = TRUE)
 r_proficiency <- r_proficiency %>% 
-  mutate(Qtime_to_proficiency = factor(Qtime_to_proficiency, levels = rev(Qtime_to_proficiency)))
+  mutate(Qtime_to_proficiency = factor(Qtime_to_proficiency, levels = rev(Qtime_to_proficiency)),
+         position = cumsum(percent) - percent / 2,
+         label = ifelse(percent >= 10, paste0(Qtime_to_proficiency, "\n", round(percent), "%"), ""))
 
-bar_chart(df                 = r_proficiency,
+pie_chart(df                 = r_proficiency,
           column_name        = Qtime_to_proficiency,
+          text_position_expression = position,
           title_string           = "Time To Achieve Proficiency In R (R Users Only)",
           subtitle_string        = question_text("Qtime_to_proficiency", 70),
           caption_string         = paste0("RStudio Learning R Survey, n = ",first(r_proficiency$nn)),
-          fill_color             = params$bar_colors)
+          colors             = "Set1")
+
+
 
 ```
 
@@ -793,7 +856,7 @@ ggplot(ages, aes(x = learner_type, y = age, group = learner_type)) +
 
 
 ggplot(filter(survey, Qr_year >= 1990)) +
-  geom_histogram(aes(Qr_year), binwidth = 1, fill = params$bar_colors, color="black") +
+  geom_histogram(aes(Qr_year), binwidth = 1, fill = params$bar_colors, color="gray60") +
   scale_x_continuous(breaks = c(1990, 1995, 2000, 2005, 2010, 2015, 2018)) +
   labs(title = "Year Started Learning R", 
        subtitle = question_text("Qr_year"),
@@ -895,7 +958,7 @@ nps <- round(sum(recommend_scores$percent[9:10], na.rm=TRUE) -
 npr <- nps %>% cut(breaks = c(-100, 0, 50, 75, 100), labels = c("Dangerous", "Good", "Excellent", "World Class"))
 
 ggplot(recommend_scores) +
-  geom_col(aes(x = Qrecommend, y = percent), fill = params$bar_colors, color="black") +
+  geom_col(aes(x = Qrecommend, y = percent), fill = params$bar_colors) +
   geom_text(aes(x = Qrecommend, y = percent, label = paste0(round(percent), "%")), 
             color="black", size=3, nudge_y = 3) +
   scale_x_continuous(breaks = 1:10) +
@@ -1333,7 +1396,7 @@ tidy_packages <- tidy_packages <- tidy_packages %>% anti_join(non_capability_wor
 
 # Now do replacements
 replacements <- c("ggplot2" = "ggplot", "rstudio" = "RStudio IDE", "^tidy$" = "tidyverse", "^pipe$" = "magrittr")
-tidy_packages <- tidy_packages %>% 
+tidy_packages <- tidy_packag.tes %>% 
   mutate(changed_words = str_replace_all(words, replacements))
 package_counts <- tidy_packages %>% 
   count(changed_words, sort = TRUE) %>% 
@@ -1375,5 +1438,92 @@ bar_chart(r_difficult_aspect,
           subtitle_string = question_text("Qmost_difficult_aspect", 60),
           caption_string = paste0(survey_name, ", n = ", diff_responses))
 ggsave("plots/Most Difficult Aspect of Learning (Non-R Users).pdf")
+
+```
+## Expected Time To Success (Non-R Users)
+
+```{r Expected Time To Success, echo = TRUE}
+
+time_to_success <- survey %>% 
+  select(Qr_length_to_success)
+r_expected_time_to_learn <- tally_question(time_to_success, 
+                                           Qr_length_to_success, 
+                                           rm.na = TRUE, 
+                                           sort = TRUE) %>% 
+  rename(learning_time = Qr_length_to_success)
+time_responses <- first(r_expected_time_to_learn$nn)
+r_expected_time_to_learn <- r_expected_time_to_learn %>%
+  mutate(learning_time = factor(as.character(learning_time), levels = rev(learning_time)),
+         position = cumsum(percent) - percent / 2,
+         label = ifelse(percent >= 10, paste0(learning_time, "\n", round(percent), "%"), ""))
+
+pie_chart(r_expected_time_to_learn, 
+          column_name = learning_time,
+          text_position = position,
+          colors = "Set1", 
+          title_string = "Expected Time To Success (Non-R Users)",
+          subtitle_string = question_text("Qr_length_to_success", 60),
+          caption_string = paste0(survey_name, ", n = ", diff_responses))
+ggsave("plots/Expected Time To Success (Non-R Users).pdf")
+```
+
+## R Difficulty (Non-R Users)
+
+```{r Difficulty Learning for non-R users, echo = TRUE}
+
+r_difficulty <- tally_question(survey, Qr_difficulty, rm.na = TRUE, sort = FALSE)
+diff_responses <- first(r_difficulty$nn)
+mean_difficulty = round(mean(survey$Qr_difficulty, na.rm = TRUE), 1)
+
+r_difficulty <- r_difficulty %>%
+  mutate(percent = percent / 100)      # the plot below uses a percent y axis
+
+ggplot(r_difficulty) +
+  geom_bar(aes(x = Qr_difficulty, y = percent),
+           stat = "identity",
+           color = params$bar_colors,
+           fill = params$bar_colors,
+           width = 0.5,
+           alpha = 0.5) +
+  geom_text(aes(x = Qr_difficulty, y = percent,
+                label = paste0(round(percent * 100), "%")),
+                color = "gray30",
+                nudge_y = .03) +
+  geom_vline(aes(xintercept = mean_difficulty), color = "darkblue") +
+  annotate("text", x = 4, y = 0.4, label = paste0("Mean value = ", mean_difficulty)) +
+  scale_y_continuous(labels = scales::percent) +
+  labs(title = "Expected Difficulty in Learning R (Non-R Users)", 
+       subtitle = question_text("Qr_difficulty", 72),
+       caption = paste0(survey_name, ", n = ", diff_responses),
+       x="Respondent Rating (1 = Easiest, 5 = Most Difficult)", y="")
+  ggsave("plots/Expected Difficulty in Learning R (Non-R Users).pdf")
+```
+
+## How Do You Plan To Learn R  (Non-R Users)
+
+```{r How Do You Plan To Learn R, echo = TRUE}
+# We shorten down the given answers while categorizing open-text answers given for "Other"
+# Just as we did for the gender and industry questions, we use small dictionary to do this
+# However, because commas may appear in the open text respones, we'll use a tsv file instead of a csv one.
+
+r_plan_dictionary <- read_delim("data/learning_plan_dictionary.tsv", delim="\t")
+r_plan <- survey %>% select(Qhow_to_learn_r) %>% left_join(r_plan_dictionary, c("Qhow_to_learn_r" = "Input"))
+r_learning_plan <- tally_question(r_plan, Output, rm.na = TRUE, sort = TRUE)
+r_plan_responses <- first(r_learning_plan$nn)
+
+r_learning_plan <-r_learning_plan %>% 
+ mutate(Output = factor(Output, levels = Output),
+         position = cumsum(percent) - percent / 2,
+         label = ifelse(percent >= 2, paste0(Output, "\n", round(percent), "%"), ""))
+
+pie_chart(df                 = r_learning_plan,
+          column_name        = Output,
+          text_position          = 100 - position,
+          title_string           = "Planned R Learning Path (Non-R Users)",
+          subtitle_string        = question_text("Qhow_to_learn_r"),
+          caption_string         = paste0(survey_name, ", n = ", r_plan_responses),
+          fill_legend_title      = "",
+          colors                 = "Set2")
+
 
 ```
