@@ -1296,7 +1296,8 @@ non_capability_words <- tibble(word = c("ability", "data", "package", "live", "e
                                         "function", "functional", "functions", "entire", "easy",
                                         "machine", "learning", "capability", "general",
                                         "love", "lot", "hard", "lack", "curve",
-                                        "code", "guess", "question", "makes", "online", "learn"),
+                                        "code", "guess", "question", "makes", "online", "learn",
+                                        "it’s", "e.g.", "understand"),
                        lexicon = "adhoc")
 tidy_likeleast <- tidy_likeleast <- tidy_likeleast %>% anti_join(non_capability_words, by = c("words" = "word"))
 
@@ -1396,7 +1397,7 @@ tidy_packages <- tidy_packages <- tidy_packages %>% anti_join(non_capability_wor
 
 # Now do replacements
 replacements <- c("ggplot2" = "ggplot", "rstudio" = "RStudio IDE", "^tidy$" = "tidyverse", "^pipe$" = "magrittr")
-tidy_packages <- tidy_packag.tes %>% 
+tidy_packages <- tidy_packages %>% 
   mutate(changed_words = str_replace_all(words, replacements))
 package_counts <- tidy_packages %>% 
   count(changed_words, sort = TRUE) %>% 
@@ -1410,7 +1411,7 @@ top_25_packages <- top_n_choices(packages_list, capability, num_package_response
 top_25_packages <- top_25_packages %>%
   mutate(capability = factor(as.character(capability), levels = rev(capability)))
 
-bar_chart(top_25_packages, 
+bar_chart_counts(top_25_packages, 
           column_name = capability, 
           fill_color = params$bar_colors, 
           title_string = "Capabilities Users Cannot Live Without (R Users Only)",
