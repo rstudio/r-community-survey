@@ -69,7 +69,6 @@ tally_question <- function(df, question_name, rm.na = TRUE, sort = TRUE) {
   return(results_df)
 }
 
-
 # Split and aggregate: derives multiple answers to a single question by separating on commas and returning
 # the results as an embedded list in the dataframe.
 split_and_aggregate <- function(df, question_name) {
@@ -1357,4 +1356,24 @@ bar_chart(top_25_packages,
 ggsave("plots/R Capabilities Users Cannot Live Without (R Users Only).pdf")
 ```
 
->>>>>>> 41f08f63fb291a93f134a3737d37c9f06753def6
+## Most Difficult Aspect of Learning (Non-R Users)
+
+```{r Most Difficult Aspect of Learning, echo = TRUE}
+
+aspects <- survey %>% 
+  select(Qmost_difficult_aspect) %>% 
+  mutate(challenge = str_trunc(Qmost_difficult_aspect, 30))
+r_difficult_aspect <- tally_question(aspects, challenge, rm.na = TRUE, sort = TRUE)
+diff_responses <- first(r_difficult_aspect$nn)
+r_difficult_aspect <-r_difficult_aspect %>%
+  mutate(challenge = factor(as.character(challenge), levels = rev(challenge)))
+
+bar_chart(r_difficult_aspect, 
+          column_name = challenge, 
+          fill_color = params$bar_colors, 
+          title_string = "Most Difficult Aspect of Learning (Non-R Users)",
+          subtitle_string = question_text("Qmost_difficult_aspect", 60),
+          caption_string = paste0(survey_name, ", n = ", diff_responses))
+ggsave("plots/Most Difficult Aspect of Learning (Non-R Users).pdf")
+
+```
