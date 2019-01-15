@@ -949,14 +949,12 @@ r_path_results <- r_path_results %>%
          position = cumsum(percent) - percent / 2,
          label = ifelse(percent >= 2, paste0(Output, "\n", round(percent), "%"), ""))
 
-pie_chart(df                 = r_path_results,
-          column_name        = Output,
-          text_position          = 100 - position,
+lollipop_chart(df                 = r_path_results,
+          column_name            = Output,
           title_string           = "R Learning Path  (R Users Only)",
-          subtitle_string        = question_text("Qr_learning_path"),
+          subtitle_string        = question_text("Qr_learning_path", "(R users only)"),
           caption_string         = paste0(survey_name, ", n = ", r_path_responses),
-          fill_legend_title      = "",
-          colors                 = "Set2")
+          fill_color                 = params$bar_colors)
 
 
 ```
@@ -1063,29 +1061,29 @@ ggplot(ss) +
 ## What is R Used For?  (R Users Only)
 
 ```{r R Used For, echo = TRUE}
-r_tools_dictionary <- read_delim("data/tools_dictionary.tsv", delim = "\t")
+r_use_dictionary <- read_delim("data/use_dictionary.tsv", delim = "\t")
 
 # Breaks up uses into nested lists
 uses <- survey %>% mutate(application = purrr::map(Qused_for, str_split, ", ")) %>% unnest()
-tools_used <- uses %>% unnest() %>% select(application)
-parsed_tools_used <- tools_used %>% 
-  left_join(r_tools_dictionary, c("application" = "Input"))
-parsed_tools_exceptions <- tools_used %>% 
-  anti_join(r_tools_dictionary, c("application" = "Input"))
+apps_used <- uses %>% unnest() %>% select(application)
+parsed_use_used <- apps_used %>% 
+  left_join(r_use_dictionary, c("application" = "Input"))
+parsed_use_exceptions <- apps_used %>% 
+  anti_join(r_use_dictionary, c("application" = "Input"))
 # Count the non-NA entries now
 use_responses <- sum(!is.na(survey$Qused_for))
 
-parsed_tools_tally <- parsed_tools_used %>% count(Output, sort = TRUE)
+parsed_use_tally <- parsed_use_used %>% count(Output, sort = TRUE)
 
-parsed_tools_tally <- parsed_tools_tally %>% 
+parsed_use_tally <- parsed_use_tally %>% 
   mutate(percent = round(n / use_responses * 100),
          prop_responses = n / use_responses) %>% 
   arrange(desc(percent))
-app_plot <- head(parsed_tools_tally, 15) %>% 
+app_plot <- head(parsed_use_tally, 15) %>% 
   ungroup() %>% 
   arrange(prop_responses)
 
-other <- tail(parsed_tools_tally, -15) %>% 
+other <- tail(parsed_use_tally, -15) %>% 
   ungroup() %>% 
   summarize(Output = "Other", 
             n = sum(n), 
@@ -1243,8 +1241,7 @@ ggplot(r_enjoyment) +
   geom_vline(aes(xintercept = mean_enjoyment), color = "green") +
   annotate("text", x = 4, y = 0.5, label = paste0("Mean value = ", mean_enjoyment)) +
   scale_y_continuous(labels = scales::percent) +
-  labs(title = "Enjoyment Using R (R Users Only)", 
-       subtitle = question_text("Qr_enjoyment", 60),
+  labs(subtitle = question_text("Qr_enjoyment", "(R users only)", 75),
        caption = paste0(survey_name, ", n = ", diff_responses),
        x="Respondent Rating (1 = Not at all, 5 = A great deal)", y="")
 plot_save("Enjoyment Using R (R Users Only).pdf")
@@ -1253,90 +1250,101 @@ plot_save("Enjoyment Using R (R Users Only).pdf")
 ## Tidyverse Learning (R Users Only)
 
 ```{r tidyverse Learning, echo = TRUE}
+tidyverse_learned_dictionary <- read_delim("data/tidyverse_learned_dictionary.tsv", delim = "\t")
+r_tidyverse_learned_responses <- survey %>% select(Qtidyverse_learning)
+r_tidyverse_learned_parsed <- r_tidyverse_learned_responses %>% 
+   left_join(tidyverse_learned_dictionary, c("Qtidyverse_learning" = "Input"))
+r_tidyverse_learned_exceptions <- r_tidyverse_learned_responses %>% 
+  anti_join(tidyverse_learned_dictionary, c("Qtidyverse_learning" = "Input"))
+r_tidyverse_learned_results <- tally_question(r_tidyverse_learned_parsed, Output, rm.na = TRUE, sort = TRUE)
+r_tidyverse_learned_responses <- first(r_tidyverse_learned_results$nn)
 
-learned_with_tidyverse <- tally_question(survey, Qtidyverse_learning, rm.na = TRUE, sort = TRUE)
-learned_with_tidyverse_responses <- first(learned_with_tidyverse$nn)
-learned_with_tidyverse <- learned_with_tidyverse %>% 
- mutate(Qtidyverse_learning_factor = factor(Qtidyverse_learning, levels = Qtidyverse_learning),
+learned_with_tidyverse <- r_tidyverse_learned_results %>% 
+ mutate(Output = factor(Output, levels = Output),
          position = cumsum(percent) - percent / 2,
-         label = ifelse(percent >= 2, paste0(Qtidyverse_learning, "\n", round(percent), "%"), ""))
+         label = ifelse(percent >= 2, paste0(Output, "\n", round(percent), "%"), ""))
 
-pie_chart(df                 = learned_with_tidyverse,
-          column_name        = Qtidyverse_learning_factor,
-          text_position          = 100 - position,
-          title_string           = "Learned With Tidyverse (R Users Only)",
-          subtitle_string        = question_text("Qtidyverse_learning"),
+lollipop_chart(df                 = learned_with_tidyverse,
+          column_name        = Output,
+          subtitle_string        = question_text("Qtidyverse_learning", "(R users only)"),
           caption_string         = paste0(survey_name, ", n = ",learned_with_tidyverse_responses),
-          fill_legend_title      = "",
-          reverse_fill_legend    = FALSE,
-          colors                 = "Set1")
-plot_save("Enjoyment Using R (R Users Only).pdf")
+          fill_color             = params$bar_colors)
+plot_save("Tidyverse Learning (R Users Only).pdf")
 ```
 
 ## Tidyverse Use (R Users Only)
 
 ```{r tidyverse, echo = TRUE}
+tidyverse_use_dictionary <- read_delim("data/tidyverse_use_dictionary.tsv", delim = "\t")
+r_tidyverse_use_responses <- survey %>% select(Qtidyverse_today)
+r_tidyverse_use_parsed <- r_tidyverse_use_responses %>% 
+   left_join(tidyverse_use_dictionary, c("Qtidyverse_today" = "Input"))
+r_tidyverse_use_exceptions <- r_tidyverse_use_responses %>% 
+  anti_join(tidyverse_use_dictionary, c("Qtidyverse_today" = "Input"))
+r_tidyverse_use_results <- tally_question(r_tidyverse_use_parsed, Output, rm.na = TRUE, sort = TRUE)
+r_tidyverse_use_responses <- first(r_tidyverse_use_results$nn)
 
-tidyverse_use <- tally_question(survey, Qtidyverse_today, rm.na = TRUE, sort = TRUE)
-tidyverse_use_responses <- first(tidyverse_use$nn)
-tidyverse_use <- tidyverse_use %>% 
- mutate(Qtidyverse_today_factor = factor(Qtidyverse_today, levels = Qtidyverse_today),
+using_tidyverse <- r_tidyverse_use_results %>% 
+ mutate(Output = factor(Output, levels = Output),
          position = cumsum(percent) - percent / 2,
-         label = ifelse(percent >= 2, paste0(Qtidyverse_today, "\n", round(percent), "%"), ""))
+         label = ifelse(percent >= 2, paste0(Output, "\n", round(percent), "%"), ""))
 
-pie_chart(df                 = tidyverse_use,
-          column_name        = Qtidyverse_today_factor,
-          text_position          = 100 - position,
-          title_string           = "Tidyverse Use Frequency Today (R Users Only)",
-          subtitle_string        = question_text("Qtidyverse_today"),
-          caption_string         = paste0(survey_name, ", n = ",tidyverse_use_responses),
-          fill_legend_title      = "",
-          reverse_fill_legend    = FALSE,
-          colors                 = "Set1")
+lollipop_chart(df                 = using_tidyverse,
+          column_name             = Output,
+          subtitle_string         = question_text("Qtidyverse_today", "(R users only)"),
+          caption_string          = paste0(survey_name, ", n = ",tidyverse_use_responses),
+          fill_color              = params$bar_colors)
 plot_save("Tidyverse Use Frequency Today (R Users Only).pdf")
 ```
 
 ## Shiny Use (R Users Only)
 
 ```{r shiny, echo = TRUE}
+shiny_use_dictionary <- read_delim("data/shiny_use_dictionary.tsv", delim = "\t")
+shiny_use_responses <- survey %>% select(Qshiny)
+shiny_use_parsed <- shiny_use_responses %>% 
+   left_join(shiny_use_dictionary, c("Qshiny" = "Input"))
+shiny_use_exceptions <- shiny_use_responses %>% 
+  anti_join(shiny_use_dictionary, c("Qshiny" = "Input"))
+shiny_use_results <- tally_question(shiny_use_parsed, Output, rm.na = TRUE, sort = TRUE)
+shiny_use_responses <- first(shiny_use_results$nn)
 
-shiny_use <- tally_question(survey, Qshiny, rm.na = TRUE, sort = TRUE)
-shiny_use_responses <- first(shiny_use$nn)
-shiny_use <- shiny_use %>% 
- mutate(Qshiny_factor = factor(Qshiny, levels = rev(Qshiny)),
+using_shiny <- shiny_use_results %>% 
+ mutate(Output = factor(Output, levels = Output),
          position = cumsum(percent) - percent / 2,
-         label = ifelse(percent >= 2, paste0(Qshiny, "\n", round(percent), "%"), ""))
+         label = ifelse(percent >= 2, paste0(Output, "\n", round(percent), "%"), ""))
 
-bar_chart(df                 = shiny_use,
-          column_name        = Qshiny_factor,
-          title_string           = "Shiny Use Today (R Users Only)",
-          subtitle_string        = question_text("Qshiny", 40),
-          caption_string         = paste0(survey_name, ", n = ",shiny_use_responses),
-          fill_color             = params$bar_colors)
+lollipop_chart(df                 = using_shiny,
+          column_name             = Output,
+          subtitle_string         = question_text("Qshiny", "(R users only)"),
+          caption_string          = paste0(survey_name, ", n = ",shiny_use_responses),
+          fill_color              = params$bar_colors)
 plot_save("Shiny Use Frequency Today (R Users Only).pdf")
 ```
 
 
 ## Version Control Use (R Users Only)
-
 ```{r version control, echo = TRUE}
+version_control_use_dictionary <- read_delim("data/version_control_dictionary.tsv", delim = "\t")
+version_control_use_responses <- survey %>% select(Qversion_control)
+version_control_use_parsed <- version_control_use_responses %>% 
+   left_join(version_control_use_dictionary, c("Qversion_control" = "Input"))
+version_control_use_exceptions <- version_control_use_responses %>% 
+  anti_join(version_control_use_dictionary, c("Qversion_control" = "Input"))
+version_control_use_results <- tally_question(version_control_use_parsed, Output, rm.na = TRUE, sort = TRUE)
+version_control_use_responses <- first(version_control_use_results$nn)
 
-version_control_responses <- survey %>% 
-  transmute(Qversion_control = str_replace_all(Qversion_control, c(" -- .*$" = "", "\\.$" = "")))
-version_control_use <- tally_question(version_control_responses, Qversion_control, rm.na = TRUE, sort = TRUE)
-version_control_use_responses <- first(version_control_use$nn)
-version_control_use <- version_control_use %>% 
- mutate(Qversion_control_factor = factor(Qversion_control, levels = rev(Qversion_control)),
+using_version_control <- version_control_use_results %>% 
+ mutate(Output = factor(Output, levels = Output),
          position = cumsum(percent) - percent / 2,
-         label = ifelse(percent >= 2, paste0(Qversion_control, "\n", round(percent), "%"), ""))
+         label = ifelse(percent >= 2, paste0(Output, "\n", round(percent), "%"), ""))
 
-bar_chart(df                 = version_control_use,
-          column_name        = Qversion_control_factor,
-          title_string           = "Version Control Use (R Users Only)",
-          subtitle_string        = question_text("Qversion_control", 60),
-          caption_string         = paste0(survey_name, ", n = ",version_control_use_responses),
-          fill_color             = params$bar_colors)
-plot_save("Version Control Use (R Users Only).pdf")
+lollipop_chart(df                 = using_version_control,
+          column_name             = Output,
+          subtitle_string         = question_text("Qversion_control", "(R users only)"),
+          caption_string          = paste0(survey_name, ", n = ",version_control_use_responses),
+          fill_color              = params$bar_colors)
+plot_save("Version_control Use Frequency Today (R Users Only).pdf")
 ```
 
 ## Unit Tests (R Users Only)
