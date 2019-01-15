@@ -57,8 +57,62 @@ theme_conf <- function(font_choice = "Lato"){
 # set custom ggplot2 theme for plots
 ggplot2::theme_set(theme_conf())
 
+# Before we start, let's define the columns and types of the survey
+
+column_formats = cols(
+  Qtime = col_datetime(format = ""),
+  Qindustry = col_character(),
+  Qtitle = col_character(),
+  Qwork_title = col_character(),
+  Qlanguages = col_character(),
+  Qfirst_language = col_character(),
+  Qr_experience = col_character(),
+  Qr_year = col_double(),
+  Qtime_to_proficiency = col_character(),
+  Qr_learning_path = col_character(),
+  Qreason_to_learn = col_character(),
+  Qr_use = col_character(),
+  Qr_length_to_success = col_character(),
+  Qr_difficulty = col_double(),
+  Qr_reason_experienced = col_character(),
+  Qr_how_often_used = col_character(),
+  Qr_enjoyment = col_double(),
+  Qr_difficulty_experienced = col_double(),
+  Qtidyverse_learning = col_character(),
+  Qtidyverse_today = col_character(),
+  Qshiny = col_character(),
+  Qunit_tests = col_character(),
+  Qlike_best = col_character(),
+  Qlike_least = col_character(),
+  Qrecommend = col_double(),
+  Qused_for = col_character(),
+  Qmost_difficult_aspect = col_character(),
+  blank_question = col_character(),
+  Qnot_live_without = col_character(),
+  Qcapability_missing = col_character(),
+  Qtools = col_character(),
+  Qchange_one_thing = col_character(),
+  Qyear_born = col_double(),
+  Qgender = col_character(),
+  Qcountry = col_character(),
+  Qethnicity = col_character(),
+  Qdegree = col_character(),
+  Qteam_r_users = col_double(),
+  Qversion_control = col_character(),
+  Qtools_with_r = col_character(),
+  Qobstacles_to_starting = col_character(),
+  Qbiggest_difficulty = col_character(),
+  Qhow_to_learn_r = col_character(),
+  learner_type = col_character(),
+  Qgender_coded = col_character(),
+  Qethnicity_processed = col_character(),
+  Qethnicity_coded = col_character(),
+  number_responses = col_double()
+)
+
 # get the data
-survey <- read_tsv(here::here("slides/data", paste0("survey_", params$language,".tsv")))
+survey <- read_tsv(here::here("slides/data", paste0("survey_", params$language,".tsv")),
+                   col_types = column_formats)
 survey_questions <- read_csv(here::here("slides/data/survey_questions.csv"))
 # Saving some metadata for later
 respondents <- nrow(survey)
@@ -559,7 +613,7 @@ choro_countries <- choro_countries %>% mutate(region = str_replace_all(region, "
 
 plot_countries <- country.map %>% left_join(choro_countries, by = "region")
 ggplot(data = plot_countries, aes(long, lat, group=group)) + 
-  geom_polygon(aes(fill = value), color = "gray", size=0.1) +
+  geom_polygon(aes(fill = value), color = "gray80", size=0.1) +
   scale_fill_gradient(trans = "log10", low = "dark blue", high = "yellow") +
   coord_fixed(1.3) +
   scale_x_continuous(breaks = seq(-150, 150, 60)) +
@@ -729,7 +783,7 @@ r_education <- survey %>% select(Qdegree) %>%
 r_education_exceptions <- survey %>% select(Qdegree) %>% 
   drop_na() %>% 
   anti_join(r_education_dictionary, c("Qdegree" = "Input"))
-r_education_results <- tally_question(r_education, Output, na.rm = TRUE, sort = TRUE)
+r_education_results <- tally_question(r_education, Output, rm.na = TRUE, sort = TRUE)
 # answer_table <- r_paths %>% select(Qr_learning_path, n)
 # write_delim(answer_table, "data/r-path-dictionary.tsv", delim="\t")
 r_education_responses <- first(r_education_results$nn)
