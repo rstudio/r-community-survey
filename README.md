@@ -22,6 +22,9 @@ The information in this repository is organized as follows:
 
 The R Markdown document for processing the survey is `process_survey.Rmd`. You may need to install a variety of packages to generate the plots shown. You will need to use `devtools` to install `gendercode` from `github`. You can Google for its location.
 
+Carl Howe
+RStudio, Inc.
+carl@rstudio.com
 
 
 
