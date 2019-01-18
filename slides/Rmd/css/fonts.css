@@ -1,0 +1,23 @@
+@import url(https://fonts.googleapis.com/css?family=Lato);
+@import url('https://fonts.googleapis.com/css?family=Slabo+13px');
+@import url('https://fonts.googleapis.com/css?family=PT+Mono');
+
+body {
+  font-family: 'Lato', 'Palatino Linotype', 'Book Antiqua', Palatino, 'Microsoft YaHei', 'Songti SC', serif;
+}
+
+h1, h2, h3 {
+  font-family: 'Slabo 13px', serif;
+  font-weight: 600;
+}
+
+.inverse h1 {
+  font-family: 'Slabo 13px', serif;
+  font-weight: 800;
+  font-size: 2.5em; 
+}
+
+.remark-code, .remark-inline-code {
+  font-family: 'PT Mono', monospace;
+}
+

@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Learning R Survey Results</title>
+    <meta charset="utf-8">
+    <meta name="author" content="Carl Howe, RStudio" />
+    <meta name="date" content="2019-01-03" />
+    <link href="libs/remark-css-0.0.1/default.css" rel="stylesheet" />
+    <script defer src="https://use.fontawesome.com/releases/v5.6.1/js/all.js" integrity="sha384-R5JkiUweZpJjELPWqttAYmYM1P3SNEJRM6ecTQF05pFFtxmCO+Y1CiUhvuDzgSVZ" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="css/rstudio.css" type="text/css" />
+    <link rel="stylesheet" href="css/fonts.css" type="text/css" />
+  </head>
+  <body>
+    <textarea id="source">
+
+
+
+
+layout: true
+  
+&lt;div class="my-footer"&gt;&lt;span&gt;rstd.io/survey&lt;/span&gt;&lt;/div&gt;
+
+&lt;!-- this adds the link footer to all slides, depends on my-footer class in css--&gt;
+
+---
+name: title
+background-image: url(img/title-blue.png)
+background-size: cover
+class: inverse
+
+# Learning R 
+
+&lt;br&gt;
+&lt;br&gt;
+
+&lt;img src="img/RStudio-Logo-White.png" alt="rstudio-logo" width = '30%' /&gt;
+
+&lt;br&gt;
+&lt;br&gt;
+
+### Our Community Survey
+
+.large[Carl Howe | rstudio::conf | 2019-01-03]
+
+&lt;!-- this ends up being the title slide since seal = FALSE--&gt;
+
+
+---
+exclude: true
+
+- All data updated as of 2019-01-03 using script in slides/R/process-survey-multilang.R
+
+- The survey data is exported from that script to slides/data/survey-&lt;language&gt;.tsv
+
+- The survey questions are exported from that script to slides/data/survey_questions.csv
+
+- Both files are then imported in this slide deck
+
+- You'll need the Lato Google fonts installed to embed it within the ggplot2 figures (https://fonts.google.com/specimen/Lato)
+
+- You'll need the following R packages installed
+
+
+
+
+???
+
+put your presenter notes here
+
+---
+class: inverse, middle
+
+# Methodology
+
+--
+
+.pull-left[
+- Survey conducted between December 6 and December 31, 2018
+
+- Data and processing scripts can be found the repo at the end of this talk
+
+- Data and scripts are open source
+]
+
+--
+
+.pull-right[
+- Survey was fielded in both English and Spanish versions
+
+- Respondents solicited from
+    + community.rstudio.com
+    + Twitter followers of RStudio employees
+    + reddit.com/datascience
+    
+- Survey results are not representative of any broader population
+]
+
+
+
+---
+class: middle
+
+.left-column[
+## Responses over time
+]
+
+.right-column[
+
+&lt;img src="figures/responses over time-1.png" width="864" /&gt;
+]
+
+---
+class: inverse, middle
+
+# Our Community Diversity
+
+---
+class: middle
+
+.left-column[
+## Age Diversity
+]
+
+.right-column[
+
+&lt;img src="figures/Respondent Ages-1.png" width="864" /&gt;
+
+]
+
+---
+class: middle
+
+.left-column[
+
+## Gender Diversity
+]
+
+.right-column[
+
+&lt;img src="figures/Respondent Gender-1.png" width="864" /&gt;
+
+]
+
+---
+class: middle
+name: alison-gender-props
+
+.left-column[
+
+## Gender Diversity
+]
+
+.right-column[
+
+&lt;img src="figures/Respondent Gender2-1.png" width="864" /&gt;
+
+]
+
+
+---
+class: middle
+name: alison-gender-age
+
+.left-column[
+
+### Minority Gender Representation
+]
+
+.right-column[
+
+&lt;img src="figures/Respondent Gender Age-1.png" width="864" /&gt;
+
+]
+
+
+
+---
+class: middle
+name: alison-facet-background
+
+.left-column[
+
+### Minority Gender Representation
+]
+
+.right-column[
+
+&lt;img src="figures/Respondent Gender Age Facet-1.png" width="864" /&gt;
+
+]
+
+???
+
+The grey histograms are the background data
+
+
+---
+class: middle
+
+.left-column[
+## Respondent Countries
+]
+
+.right-column[
+
+&lt;img src="figures/Respondent Countries-1.png" width="864" /&gt;
+
+]
+---
+class: middle
+name: alison-map
+
+.left-column[
+## Geographic Diversity
+]
+
+.right-column[
+
+&lt;img src="figures/unnamed-chunk-2-1.png" width="864" /&gt;
+
+]
+
+
+
+???
+
+Using help from Bob Rudis (https://rud.is/b/2015/12/28/world-map-panel-plots-with-ggplot2-2-0-ggalt/)
+
+---
+
+# Industry
+
+&lt;img src="figures/Respondent industry-1.png" width="864" /&gt;
+
+---
+# Ethnicity
+
+&lt;img src="figures/Ethnicity-1.png" width="864" /&gt;
+
+---
+exclude: true
+
+# Education Level
+
+showing you how to exclude a whole slide, also the tally function not working here so eval is FALSE
+
+
+
+---
+exclude: true
+
+# Job Title
+
+
+
+---
+# Languages Used Prior To R
+
+
+
+&lt;img src="figures/Languages Used Prior To Learning R-1.png" width="864" /&gt;
+
+.footnote[
+Carl- your bar chart function here needs to be updated to use `num_language_responses`
+]
+
+---
+# First Language Learned
+
+&lt;img src="figures/First Language or Tool Learned-1.png" width="864" /&gt;
+
+
+
+
+---
+class: inverse, middle
+
+# Learning Questions
+
+---
+# R Difficulty (R Users Only)
+
+&lt;img src="figures/Difficulty Learning R Experienced-1.png" width="864" /&gt;
+
+---
+# Time To R Proficiency (R Users Only)
+
+&lt;img src="figures/Time to proficiency-1.png" width="864" /&gt;
+
+---
+# Reason Why Learned R (R Users Only)
+
+&lt;img src="figures/Why Learned R-1.png" width="864" /&gt;
+
+---
+
+# What is Your Experience with R? (All Respondents)
+
+&lt;img src="figures/R Experience so far-1.png" width="864" /&gt;
+
+---
+
+# How Did You Learn R?  (R Users Only)
+
+&lt;img src="figures/How Did You Learn R-1.png" width="864" /&gt;
+
+---
+# Respondent Ages By Learner Type
+
+&lt;img src="figures/R Learning Ages By Learner Type-1.png" width="864" /&gt;
+
+---
+
+# Year Respondents Learned R (All Respondents)
+
+&lt;img src="figures/Year respondents learned R-1.png" width="864" /&gt;
+
+---
+
+# Number of People You Work With That Know R By Learner Type
+
+&lt;img src="figures/Number R Team Members-1.png" width="864" /&gt;
+
+---
+
+# Difficulty of Learning R based on Learner Type
+
+&lt;img src="figures/Ages By Learner Type-1.png" width="864" /&gt;
+
+---
+class: middle
+
+
+.left-column[
+
+## What is R Used For?
+
+]
+
+
+.right-column[
+
+
+
+
+
+---
+name: alison-r-used-for
+class: middle
+
+.left-column[
+
+## What is R used for?
+
+]
+
+.right-column[
+
+
+&lt;img src="figures/alison-r-used-for-1.png" width="864" /&gt;
+]
+
+---
+class: middle
+name: net-promotor-score
+
+.left-column[
+## Net Promoter Score
+]
+
+.right-column[
+
+&lt;img src="figures/Net Promoter Score-1.png" width="864" /&gt;
+]
+
+---
+class: middle
+
+
+.left-column[
+## What Tools Do You Use With R?
+]
+
+.right-column[
+
+&lt;img src="figures/R Tools Used-1.png" width="864" /&gt;
+]
+
+.footnote[
+R Users Only
+]
+
+---
+class: middle
+name: alison-other-tools
+
+.left-column[
+## What Tools Do You Use With R?
+]
+
+.right-column[
+
+&lt;img src="figures/alison-other-tools-1.png" width="864" /&gt;
+]
+
+.footnote[
+R Users Only
+]
+
+---
+class: middle
+
+.left-column[
+
+## Greatest Difficulty in Learning R
+]  
+
+.right-column[
+
+&lt;img src="figures/Greatest difficulting learning-1.png" width="864" /&gt;
+]
+
+---
+class: middle
+
+.left-column[
+## Frequency of R Use 
+]
+
+.right-column[
+&lt;img src="figures/Frequency of R Use-1.png" width="864" /&gt;
+]
+
+.footnote[
+(R Users Only)
+]
+
+---
+class: middle
+
+.left-column[
+## R Enjoyment
+
+]
+
+.right-column[
+
+&lt;img src="figures/R Enjoyment-1.png" width="864" /&gt;
+
+]  
+
+.footnote[
+ (R Users Only)
+]
+
+---
+class: middle
+
+.left-column[
+## Tidyverse Learning 
+]
+
+.right-column[
+
+&lt;img src="figures/tidyverse Learning-1.png" width="864" /&gt;
+]
+
+.footnote[
+(R Users Only)
+]
+
+---
+class: middle
+
+.left-column[
+## Tidyverse Use 
+]
+
+.right-column[
+&lt;img src="figures/tidyverse-1.png" width="864" /&gt;
+]
+
+.footnote[
+(R Users Only)
+]
+    </textarea>
+<script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>
+<script src="https://platform.twitter.com/widgets.js"></script>
+<script>var slideshow = remark.create({
+"slideNumberFormat": "",
+"highlightStyle": "github",
+"highlightLines": true,
+"countIncrementalSlides": false,
+"ratio": "16:9"
+});
+if (window.HTMLWidgets) slideshow.on('afterShowSlide', function (slide) {
+  window.dispatchEvent(new Event('resize'));
+});
+(function() {
+  var d = document, s = d.createElement("style"), r = d.querySelector(".remark-slide-scaler");
+  if (!r) return;
+  s.type = "text/css"; s.innerHTML = "@page {size: " + r.style.width + " " + r.style.height +"; }";
+  d.head.appendChild(s);
+})();</script>
+
+<script>
+(function() {
+  var i, text, code, codes = document.getElementsByTagName('code');
+  for (i = 0; i < codes.length;) {
+    code = codes[i];
+    if (code.parentNode.tagName !== 'PRE' && code.childElementCount === 0) {
+      text = code.textContent;
+      if (/^\\\((.|\s)+\\\)$/.test(text) || /^\\\[(.|\s)+\\\]$/.test(text) ||
+          /^\$\$(.|\s)+\$\$$/.test(text) ||
+          /^\\begin\{([^}]+)\}(.|\s)+\\end\{[^}]+\}$/.test(text)) {
+        code.outerHTML = code.innerHTML;  // remove <code></code>
+        continue;
+      }
+    }
+    i++;
+  }
+})();
+</script>
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+(function () {
+  var script = document.createElement('script');
+  script.type = 'text/javascript';
+  script.src  = 'https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-MML-AM_CHTML';
+  if (location.protocol !== 'file:' && /^https?:/.test(script.src))
+    script.src  = script.src.replace(/^https?:/, '');
+  document.getElementsByTagName('head')[0].appendChild(script);
+})();
+</script>
+  </body>
+</html>
