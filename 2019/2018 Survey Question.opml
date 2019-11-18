@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<opml version="1.0">
+	<head>
+		<dateCreated>Mon Nov 18 2019 12:34:58 GMT-0500 (Eastern Standard Time)</dateCreated>
+		<dateModified>Mon Nov 18 2019 12:34:58 GMT-0500 (Eastern Standard Time)</dateModified>
+	</head>
+	<body>
+		<outline text="2018 Survey Question">
+			<outline text="Demographics">
+				<outline text="What industry do you work or participate in?"></outline>
+				<outline text="What is your job title, if any?"></outline>
+				<outline text="Which category best describes the work you do?"></outline>
+				<outline text="What year were you born?"></outline>
+				<outline text="What gender do you identify with?"></outline>
+				<outline text="In what country do you currently reside?"></outline>
+				<outline text="I identify my ethnicity as (select all that apply):"></outline>
+				<outline text="What is the highest degree or level of school you have completed? If currently enrolled, please use the highest degree received."></outline>
+			</outline>
+			<outline text="R User Expertise">
+				<outline text="How would you rate your level of experience using R?"></outline>
+			</outline>
+			<outline text="R Learning Path">
+				<outline text="What year did you first start learning R?"></outline>
+				<outline text="Roughly how long did it take you to achieve proficiency in R?"></outline>
+				<outline text="How did you learn R? If you used multiple methods, please select the one you used the most."></outline>
+				<outline text="Which statement most closely reflects the primary reason why you learned R?"></outline>
+				<outline text="What do you think is the biggest obstacle you must overcome in trying to learn R? If we haven&apos;t listed your obstacle, please choose Other and add your obstacle in the text."></outline>
+				<outline text="What was most difficult for you in learning R?"></outline>
+			</outline>
+			<outline text="R Use Today">
+				<outline text="Think about the past month: how often did you use R, either for professional or personal projects)?"></outline>
+				<outline text="Please rate how much you enjoy using R on a scale of 1 to 5, where 1 is you don&apos;t enjoy it at all, and 5 is that you enjoy it a great deal."></outline>
+				<outline text="Compared with other technical topics you&apos;ve learned in school and on the job, on a scale of 1 to 5, how difficult has it been for you to learn R?"></outline>
+				<outline text="What do you like best about using R?"></outline>
+				<outline text="What do you like least about using R?"></outline>
+				<outline text="How likely are you to recommend R to a colleague, friend, or family member?"></outline>
+				<outline text="What applications do you use R for most? (check all that apply)"></outline>
+				<outline text="How often do you write unit tests for your R code? These tests can be standalone tests or can be part of a testing framework such as those in R packages testthat and RUnit?"></outline>
+				<outline text="What R capability or package could you not live without?"></outline>
+				<outline text="What capability or package do you feel is most missing from R?"></outline>
+				<outline text="If you could change one thing about R and its tool chain that would have made it easier for you to learn and use, what would it be?"></outline>
+				<outline text="Other than yourself, roughly how many people that you communicate with at least weekly use or know R?"></outline>
+			</outline>
+			<outline text="Tools Used">
+				<outline text="What computer tools and/or languages have you used besides R?"></outline>
+				<outline text="What was the FIRST computer language or tool that you learned?"></outline>
+				<outline text="How often do you use some type of version control on your R code? Choose the statement that most closely matches your use."></outline>
+				<outline text="Which tools do you use with your R applications? (please check all that apply)"></outline>
+			</outline>
+			<outline text="RStudio Interests">
+				<outline text="Did you use the tidyverse package to learn R?"></outline>
+				<outline text="Do you use the tidyverse package when you use R today?"></outline>
+				<outline text="How often do you use Shiny? Choose the statement that most closely matches your use."></outline>
+			</outline>
+			<outline text="Non-R Users">
+				<outline text="Which statement most closely reflects the primary reason why you are interested in learning R?"></outline>
+				<outline text="If you were to learn R, what would do you think you would use it for? (check all that apply)"></outline>
+				<outline text="From what you know about R, how long do you expect that it will take for you to learn enough to use R productively?"></outline>
+				<outline text="How do you think you would go about the process of learning R?"></outline>
+				<outline text="Compared with other technical topics you&apos;ve learned in school and on the job, on a scale of 1 to 5, how difficult do you expect learning R to be?"></outline>
+				<outline text="What do you think is the biggest obstacle you must overcome in trying to learn R? The choices below are only suggestions; if we haven&apos;t listed your obstacle, please choose Other and add your obstacle in the text."></outline>
+				<outline text="Which analytical tools do you use today for the functions that you might learn R for? (please check all that apply)"></outline>
+			</outline>
+		</outline>
+	</body>
+</opml>
