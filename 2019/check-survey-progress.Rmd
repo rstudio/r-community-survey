@@ -1,0 +1,26 @@
+---
+title: "Check R Survey Results 2019"
+author: "Carl Howe, RStudio"
+date: "12/11/2019"
+output: html_document
+---
+
+```{r setup, include=TRUE}
+knitr::opts_chunk$set(echo = TRUE)
+#options(htmltools.dir.version = FALSE)
+library(googledrive)
+library(googlesheets4)
+library(magrittr)
+library(ggplot2)
+library(dplyr)
+library(stringr)
+library(glue)
+googledrive::drive_deauth()
+googledrive::drive_auth(email = "carl@rstudio.com") # if we don't do this explicitly, auth doesn't really work for me.
+english_sheet <- drive_get(id="1ZcXVMxXmftc_X39de8S4xClTCL1C2lUYNfFFuuPx11A")
+english_survey <- sheets_read(english_sheet, sheet = "Form Responses 1")
+spanish_sheet <- drive_get(id="1rDcFtOfNz4g7rfIUecr2IASQluAJDKNphovtT4rHXI0")
+spanish_survey <- sheets_read(spanish_sheet, sheet = "Form Responses 1")
+print(glue("Number of English responses is {nrow(english_survey)}"))
+print(glue("Number of Spanish responses is {nrow(spanish_survey)}"))
+```
