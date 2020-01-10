@@ -1,18 +1,8 @@
 ---
 title: "Learning R Survey Results"
 author: "Carl Howe, RStudio"
-date: "16 January 2019"
-output:
-  xaringan::moon_reader:
-    css: "./include/rstudio.css"
-    nature:
-      countIncrementalSlides: yes
-      highlightLines: yes
-      highlightStyle: github
-      ratio: 16:9
-resource_files:
- - "images/temp-packages.png"
-subtitle: 14 January 2019
+date: "03 January 2020"
+output: html
 params:
   bar_colors: "#77ADDB"
   language: Combined
@@ -22,12 +12,11 @@ params:
 
 ## Methodology
 
-- Survey conducted between December 6 and December 31, 2018
+- Survey was fielded between December 16, 2019 and January 10, 2020.
 - Survey was fielded in both English and Spanish versions
 - Respondents solicited from
     + community.rstudio.com
     + Twitter followers of RStudio employees
-    + reddit.com/datascience
 - Survey results are not representative of any broader population
 - Data and processing scripts can be found the repo at the end of this talk
 - Data and scripts are open source
@@ -35,6 +24,7 @@ params:
 ## Setup
 
 ```{r setup, include=FALSE}
+
 
 knitr::opts_chunk$set(echo = FALSE)
 options(htmltools.dir.version = FALSE)
@@ -47,7 +37,7 @@ library(RColorBrewer)
 library(gendercodeR)
 library(ggrepel)
 
-survey_name = "2018 RStudio Learning R Survey"
+survey_name = "2019 R Community Survey"
 
 ###
 ### Let's define helper functions before we get going:
@@ -57,70 +47,90 @@ survey_name = "2018 RStudio Learning R Survey"
 # rm.na = TRUE to calculate percentages based on non-NA results; set to FALSE to include NAs
 # set sort = TRUE sorts the result by count; set to FALSE to return in whatever order they occur
 
-tally_question <- function(df, question_name, rm.na = TRUE, sort = TRUE) {
-  quoted_question <- enquo(question_name)
-  filtered_df <- df
-  if (rm.na) {
-    filtered_df <- filtered_df %>% filter(!is.na(!!quoted_question))
+tally_question <-
+  function(df,
+           question_name,
+           rm.na = TRUE,
+           sort = TRUE) {
+    quoted_question <- enquo(question_name)
+    filtered_df <- df
+    if (rm.na) {
+      filtered_df <- filtered_df %>% filter(!is.na(!!quoted_question))
+    }
+    results_df <- filtered_df %>%
+      count(!!quoted_question, sort = sort) %>%
+      add_tally(name) %>%
+      mutate(percent = round(n / nn * 100, 1),
+             prop_responses = n / nn)
+    return(results_df)
   }
-  results_df <- filtered_df %>% 
-    count(!!quoted_question, sort = sort) %>% add_tally() %>% 
-    mutate(percent = round(n / nn * 100, 1),
-           prop_responses = n / nn)
-  return(results_df)
-}
 
 # Split and aggregate: derives multiple answers to a single question by separating on commas and returning
 # the results as an embedded list in the dataframe.
 split_and_aggregate <- function(df, question_name) {
   quoted_question <- enquo(question_name)
-  responses_df <- df %>% summarize(responses = sum(!is.na(!!quoted_question)))
-  splits <- df %>% mutate(items = purrr::map(!!quoted_question, str_split, ", ")) %>% unnest()
-  
-  aggregated_items <- splits %>% unnest() %>% group_by(items) %>% count(sort=TRUE)
-  aggregated_items <- aggregated_items %>% mutate(num_responses = responses_df$responses)
+  responses_df <- df %>%
+    summarize(responses = sum(!is.na(!!quoted_question)))
+  splits <- df %>%
+    mutate(items = purrr::map(!!quoted_question, str_split, ", ")) %>%
+    unnest(items)
+  aggregated_items <- splits %>%
+    unnest(items) %>%
+    group_by(items) %>%
+    count(sort = TRUE)
+  aggregated_items <- aggregated_items %>%
+    mutate(num_responses = responses_df$responses)
   return(aggregated_items)
 }
 
 # Top N choices: function to distill many possible results to a question to the top N
 # responses, with the rest aggregated into an "Other" answer.
-top_n_choices <- function(df, column_name, total_responses, num = 10) {
-  
-  quoted_column_name <- enquo(column_name)
-  summarized_responses <- df %>% 
-    mutate(percent = round(n / total_responses * 100, 1),
-           prop_responses = n / total_responses) %>% 
-    arrange(desc(percent))
+top_n_choices <-
+  function(df, column_name, total_responses, num = 10) {
+    quoted_column_name <- enquo(column_name)
+    summarized_responses <- df %>%
+      mutate(
+        percent = round(n / total_responses * 100, 1),
+        prop_responses = n / total_responses
+      ) %>%
+      arrange(desc(percent))
+    
+    # Now take these responses and only show the top N, aggregating the rest into an Other category
+    
+    literals <- head(summarized_responses, num) %>%
+      ungroup()
+    other <- tail(summarized_responses,-num) %>%
+      ungroup() %>%
+      summarize(
+        !!quoted_column_name := "Other",
+        n = sum(n),
+        percent = round(n / first(total_responses) * 100, 1),
+        prop_responses = n / first(total_responses)
+      )
+    top_n <- rbind(literals, other) %>% drop_na()
+    return(top_n)
+  }
 
-  # Now take these responses and only show the top N, aggregating the rest into an Other category
-
-  literals <- head(summarized_responses, num) %>% 
-    ungroup()
-  other <- tail(summarized_responses, -num) %>% 
-    ungroup() %>% 
-    summarize(!!quoted_column_name := "Other", 
-              n = sum(n),
-              percent = round(n / first(total_responses) * 100, 1),
-              prop_responses = n / first(total_responses))
-  top_n <- rbind(literals, other) %>% drop_na()
-  return(top_n)
-}
-
-question_text <- function(question_name_string, respondents_note = "", wrap_length = 55)
-{
-   question_text <- survey_questions %>% filter(Question_name == question_name_string) %>% select(Question_text)
-   if (str_length(question_text$Question_text) >= wrap_length) {
-     return_text <- question_text$Question_text %>% str_wrap(width = wrap_length - 5)
-   } else {
-     return_text <- question_text$Question_text
-   }
-   return(paste0('"', return_text, '" ', respondents_note))
-}
+question_text <-
+  function(question_name_string,
+           respondents_note = "",
+           wrap_length = 55)
+  {
+    question_text <-
+      survey_questions %>% filter(Question_name == question_name_string) %>% select(Question_text)
+    if (str_length(question_text$Question_text) >= wrap_length) {
+      return_text <-
+        question_text$Question_text %>% str_wrap(width = wrap_length - 5)
+    } else {
+      return_text <- question_text$Question_text
+    }
+    return(paste0('"', return_text, '" ', respondents_note))
+  }
 
 ## Plot a pie chart from a single response question. The call form is a little baroque, so here's an example
 ## to illustrate the mapping of values to arguments.
-##     pie_chart(df = ethnicities, 
-##               column_name                 = Qethnicity_coded, 
+##     pie_chart(df = ethnicities,
+##               column_name                 = Qethnicity_coded,
 ##               text_position_expression    = 100 - position  ## the name of the position column in the df
 ##               title_string                = "Ethnicities",
 ##               subtitle_string             =  question_text("Qethnicity", 50)
@@ -129,9 +139,11 @@ question_text <- function(question_name_string, respondents_note = "", wrap_leng
 ##               colors                      = "Set1"         From the RColorBrewer palettes
 
 
-pie_chart <- function(df, 
-                      column_name,                # non-standard evalation column name
-                      text_position_expression,   # either a column name or an expression
+pie_chart <- function(df,
+                      column_name,
+                      # non-standard evalation column name
+                      text_position_expression,
+                      # either a column name or an expression
                       title_string = "",
                       subtitle_string = "",
                       caption_string = survey_name,
@@ -141,32 +153,50 @@ pie_chart <- function(df,
   quoted_column_name <- enquo(column_name)
   quoted_position <- enquo(text_position_expression)
   p <- ggplot(df) +
-    geom_col(aes(x = 1, y = round(percent), fill = !!quoted_column_name), 
-             width = 1, size = 1, color = "gray90", alpha = 0.4) +
-    geom_text(aes(x = 1.22, y = !!quoted_position, label = label),
-                    size = 3,
-                    hjust = 0.4,
-                    color = "black"
-     ) +
-    labs(x = NULL, y = NULL,
-         subtitle = subtitle_string,
-         caption = caption_string,
-         fill = fill_legend_title) +
+    geom_col(
+      aes(
+        x = 1,
+        y = round(percent),
+        fill = !!quoted_column_name
+      ),
+      width = 1,
+      size = 1,
+      color = "gray90",
+      alpha = 0.4
+    ) +
+    geom_text(
+      aes(
+        x = 1.22,
+        y = !!quoted_position,
+        label = label
+      ),
+      size = 3,
+      hjust = 0.4,
+      color = "black"
+    ) +
+    labs(
+      x = NULL,
+      y = NULL,
+      subtitle = subtitle_string,
+      caption = caption_string,
+      fill = fill_legend_title
+    ) +
     guides(fill = guide_legend()) +
     scale_fill_brewer(palette = colors) +
     #   scale_fill_viridis_d("Ethnicities", option = "A", direction = -1, alpha = 0.4) +
-    guides(fill = guide_legend(reverse=reverse_fill_legend)) +
-    theme(legend.key.width=unit(1, "cm")) +
+    guides(fill = guide_legend(reverse = reverse_fill_legend)) +
+    theme(legend.key.width = unit(1, "cm")) +
     theme_classic() +
     coord_polar("y") +
     #    coord_flip() +
-    theme(axis.line = element_blank(),
-          axis.text = element_blank(),
-          axis.ticks = element_blank(),
-          panel.grid.major = element_blank(), 
-          panel.grid.minor = element_blank(),
-          panel.background = element_rect(fill = "transparent",colour = NA),
-          plot.background = element_rect(fill = "transparent",colour = NA)
+    theme(
+      axis.line = element_blank(),
+      axis.text = element_blank(),
+      axis.ticks = element_blank(),
+      panel.grid.major = element_blank(),
+      panel.grid.minor = element_blank(),
+      panel.background = element_rect(fill = "transparent", colour = NA),
+      plot.background = element_rect(fill = "transparent", colour = NA)
     )
   print(p)
   plot_save(paste0(title_string, ".pdf"))
@@ -183,139 +213,168 @@ pie_chart <- function(df,
 #           caption_string         = paste0(survey_name, ", n = ", r_education_responses)
 
 bar_chart <- function(df,
-                     column_name, 
-                     fill_color,
-                     title_string = "",
-                     subtitle_string = "",
-                     caption_string = survey_name) {
-  
+                      column_name,
+                      fill_color,
+                      title_string = "",
+                      subtitle_string = "",
+                      caption_string = survey_name) {
   quoted_column <- enquo(column_name)
   nudge_amount <- max(df$percent, rm.na = TRUE) * 0.05
   p <- ggplot(df) +
     geom_col(aes(x = !!quoted_column, y = percent),
              fill =  fill_color) +
-    geom_text(aes(x = !!quoted_column, y = percent , 
-                  label = paste0(round(percent), "%")), 
-              color="gray30", size=3, nudge_y = nudge_amount) +
-    labs(subtitle = subtitle_string,
-         caption = caption_string,
-         x="", y="") +
+    geom_text(
+      aes(
+        x = !!quoted_column,
+        y = percent ,
+        label = paste0(round(percent), "%")
+      ),
+      color = "gray30",
+      size = 3,
+      nudge_y = nudge_amount
+    ) +
+    labs(
+      subtitle = subtitle_string,
+      caption = caption_string,
+      x = "",
+      y = ""
+    ) +
     coord_flip() +
-    theme(axis.line = element_blank(),
-          axis.text.x = element_blank(),
-          axis.ticks = element_blank(),
-          panel.grid.major = element_blank(), 
-          panel.grid.minor = element_blank(),
-          panel.background = element_rect(fill = "transparent",colour = NA),
-          plot.background = element_rect(fill = "transparent",colour = NA)
+    theme(
+      axis.line = element_blank(),
+      axis.text.x = element_blank(),
+      axis.ticks = element_blank(),
+      panel.grid.major = element_blank(),
+      panel.grid.minor = element_blank(),
+      panel.background = element_rect(fill = "transparent", colour = NA),
+      plot.background = element_rect(fill = "transparent", colour = NA)
     )
   print(p)
   plot_save(paste0(title_string, ".pdf"))
   return(p)
 }
 
-## Plot a simple horizontal bar chart with counts instead of percentages. 
+## Plot a simple horizontal bar chart with counts instead of percentages.
 ## The call form is a little baroque, so here's an example
 ## to illustrate the mapping of values to arguments.
 # bar_chart_counts(top_25_packages,   # data frame to plot
 #           column_name = capability, # which column has the factor we're plotting; y always = column "n"
-#           fill_color = params$bar_colors, 
+#           fill_color = params$bar_colors,
 #           title_string = "Capabilities Users Cannot Live Without (R Users Only)",
 #           subtitle_string = paste0(question_text("Qnot_live_without", 40), " (Number of mentions shown)"),
 #           caption_string = paste0(survey_name, ", Total Mentions = ", num_package_responses))
 
 bar_chart_counts <- function(df,
-                     column_name, 
-                     fill_color,
-                     title_string = "",
-                     subtitle_string = "",
-                     caption_string = survey_name) {
-  
+                             column_name,
+                             fill_color,
+                             title_string = "",
+                             subtitle_string = "",
+                             caption_string = survey_name) {
   quoted_column <- enquo(column_name)
   nudge_amount <- max(df$n, rm.na = TRUE) * 0.05
   p <- ggplot(df) +
     geom_col(aes(x = !!quoted_column, y = n),
              fill =  fill_color) +
-    geom_text(aes(x = !!quoted_column, y = n , 
-                  label = n), 
-              color="gray30", size=3, nudge_y = nudge_amount) +
-    labs(subtitle = subtitle_string,
-         caption = caption_string,
-         x="", y="") +
+    geom_text(
+      aes(
+        x = !!quoted_column,
+        y = n ,
+        label = n
+      ),
+      color = "gray30",
+      size = 3,
+      nudge_y = nudge_amount
+    ) +
+    labs(
+      subtitle = subtitle_string,
+      caption = caption_string,
+      x = "",
+      y = ""
+    ) +
     coord_flip() +
-    theme(axis.line = element_blank(),
-          axis.text.x = element_blank(),
-          axis.ticks = element_blank(),
-          panel.grid.major = element_blank(), 
-          panel.grid.minor = element_blank(),
-          panel.background = element_rect(fill = "transparent",colour = NA),
-          plot.background = element_rect(fill = "transparent",colour = NA)
+    theme(
+      axis.line = element_blank(),
+      axis.text.x = element_blank(),
+      axis.ticks = element_blank(),
+      panel.grid.major = element_blank(),
+      panel.grid.minor = element_blank(),
+      panel.background = element_rect(fill = "transparent", colour = NA),
+      plot.background = element_rect(fill = "transparent", colour = NA)
     )
   print(p)
   plot_save(paste0(title_string, ".pdf"))
   return(p)
 }
 
-# Chop and prop: 
+# Chop and prop:
 # input: a df, a column in that df, and (optional) number of "items" (unique responses to keep, top 15 is default)
 # output: a df with the original quoted question name/items, the items as processed by fct_lump, and the n and prop_responses for plotting (need the proportions to take advantage of scales::percent when plotting)
 chop_and_prop <- function(df, question_name, num_items = 15) {
   quoted_question <- enquo(question_name)
-  responses <- df %>% summarize(responses = sum(!is.na(!!quoted_question))) %>% pull()
-  chops <- df %>% 
-    mutate(items = str_remove(!!quoted_question, "i.e., ")) %>% 
-    tidyr::separate_rows(items, sep = ", ") %>% 
+  responses <-
+    df %>% summarize(responses = sum(!is.na(!!quoted_question))) %>% pull()
+  chops <- df %>%
+    mutate(items = str_remove(!!quoted_question, "i.e., ")) %>%
+    tidyr::separate_rows(items, sep = ", ") %>%
     mutate(items = forcats::fct_lump(as.factor(items), n = num_items))
-  prop_items <- chops %>% 
-    count(items) %>% 
-    tidyr::drop_na(items) %>% 
+  prop_items <- chops %>%
+    count(items) %>%
+    tidyr::drop_na(items) %>%
     mutate(prop_responses = n / responses,
            total_responses = responses)
   return(prop_items)
 }
 
 ## Plot a simple lollipop plot. Intended to be used after chop_and_prop
-##     lollipop_chart(df = ethnicities, 
-##               column_name            = Qethnicity_coded, 
+##     lollipop_chart(df = ethnicities,
+##               column_name            = Qethnicity_coded,
 ##               original_column_string = "Qethnicity",
 ##               text_position          = position        ## the name of the position column in the df
-##               title_string           = "Ethnicities", 
+##               title_string           = "Ethnicities",
 ##               fill_legend_title      = "Respondent Ethnicity"
 ##               colors                 = "Set1"         From the RColorBrewer palettes
 
 lollipop_chart <- function(df,
-                     column_name, 
-                     fill_color,
-                     title_string = NULL,
-                     subtitle_string = "",
-                     caption_string = survey_name,
-                     pct_accuracy = 1) {
+                           column_name,
+                           fill_color,
+                           title_string = NULL,
+                           subtitle_string = "",
+                           caption_string = survey_name,
+                           pct_accuracy = 1) {
   quoted_column <- enquo(column_name)
   nudge_amount <- max(df$prop_responses, na.rm = TRUE) * 0.05
-  df <- df %>% 
-    mutate(xaxis_factor = suppressWarnings(fct_relevel(fct_reorder(!!quoted_column, prop_responses), "Other")))
-  p <- ggplot(df, aes(x = xaxis_factor, 
+  df <- df %>%
+    mutate(xaxis_factor = suppressWarnings(fct_relevel(
+      fct_reorder(!!quoted_column, prop_responses), "Other"
+    )))
+  p <- ggplot(df, aes(x = xaxis_factor,
                       y = prop_responses)) +
     geom_point(color = fill_color, size = 3) +
-    geom_segment(aes(xend = fct_rev(!!quoted_column), yend = 0), 
-                 color = fill_color,
-                 size = 1.5,
-                 alpha = .7) +
-    geom_text(aes(label = scales::percent(prop_responses, accuracy = pct_accuracy)), 
-              hjust = -.25, 
-              color="black") +
-    labs(title = title_string, 
-         subtitle = subtitle_string,
-         caption = caption_string,
-         x="", y="") +
+    geom_segment(
+      aes(xend = fct_rev(!!quoted_column), yend = 0),
+      color = fill_color,
+      size = 1.5,
+      alpha = .7
+    ) +
+    geom_text(aes(label = scales::percent(prop_responses, accuracy = pct_accuracy)),
+              hjust = -.25,
+              color = "black") +
+    labs(
+      title = title_string,
+      subtitle = subtitle_string,
+      caption = caption_string,
+      x = "",
+      y = ""
+    ) +
     coord_flip() +
-        scale_y_continuous(limits = c(0, max(df$n) * 1.05)) +
-    scale_y_continuous(labels = scales::percent_format(accuracy = 1), 
-                       limits = c(0, max(df$prop_responses)*1.05)) +
-    theme(panel.grid.major = element_blank(), 
-          panel.grid.minor = element_blank(),
-          panel.background = element_rect(fill = "transparent",colour = NA),
-          plot.background = element_rect(fill = "transparent",colour = NA)
+    scale_y_continuous(limits = c(0, max(df$n) * 1.05)) +
+    scale_y_continuous(labels = scales::percent_format(accuracy = 1),
+                       limits = c(0, max(df$prop_responses) * 1.05)) +
+    theme(
+      panel.grid.major = element_blank(),
+      panel.grid.minor = element_blank(),
+      panel.background = element_rect(fill = "transparent", colour = NA),
+      plot.background = element_rect(fill = "transparent", colour = NA)
     )
   print(p)
   #return(p)
@@ -323,49 +382,56 @@ lollipop_chart <- function(df,
 
 ## Plot a simple lollipop plot the plots counts instead of percentages.
 ## We assume the counts are in the variable named "n"
-##     lollipop_chart_counts(df = ethnicities, 
-##               column_name            = Qethnicity_coded, 
+##     lollipop_chart_counts(df = ethnicities,
+##               column_name            = Qethnicity_coded,
 ##               original_column_string = "Qethnicity",
 ##               text_position          = position        ## the name of the position column in the df
-##               title_string           = "Ethnicities", 
+##               title_string           = "Ethnicities",
 ##               fill_legend_title      = "Respondent Ethnicity"
 ##               colors                 = "Set1"         From the RColorBrewer palettes
 
 lollipop_chart_counts <- function(df,
-                     column_name, 
-                     fill_color,
-                     title_string = NULL,
-                     subtitle_string = "",
-                     caption_string = survey_name,
-                     pct_accuracy = 1) {
-  
+                                  column_name,
+                                  fill_color,
+                                  title_string = NULL,
+                                  subtitle_string = "",
+                                  caption_string = survey_name,
+                                  pct_accuracy = 1) {
   quoted_column <- enquo(column_name)
   nudge_amount <- max(df$n, na.rm = TRUE) * 0.05
-  df <- df %>% 
-    mutate(xaxis_factor = suppressWarnings(fct_relevel(fct_reorder(!!quoted_column, n), "Other")))
-  p <- ggplot(df, aes(x = xaxis_factor, 
+  df <- df %>%
+    mutate(xaxis_factor = suppressWarnings(fct_relevel(
+      fct_reorder(!!quoted_column, n), "Other"
+    )))
+  p <- ggplot(df, aes(x = xaxis_factor,
                       y = n)) +
     geom_point(color = fill_color, size = 3) +
-    geom_segment(aes(xend = fct_rev(!!quoted_column), yend = 0), 
-                 color = fill_color,
-                 size = 1.5,
-                 alpha = .7) +
-    geom_text(aes(label = n), 
-              hjust = -0.9, 
-              color="black",
+    geom_segment(
+      aes(xend = fct_rev(!!quoted_column), yend = 0),
+      color = fill_color,
+      size = 1.5,
+      alpha = .7
+    ) +
+    geom_text(aes(label = n),
+              hjust = -0.9,
+              color = "black",
               size = 3) +
-    labs(title = title_string, 
-         subtitle = subtitle_string,
-         caption = caption_string,
-         x="", y="") +
+    labs(
+      title = title_string,
+      subtitle = subtitle_string,
+      caption = caption_string,
+      x = "",
+      y = ""
+    ) +
     coord_flip() +
     scale_y_continuous(limits = c(0, max(df$n) * 1.05)) +
-    theme(panel.grid.major = element_blank(), 
-          panel.grid.minor = element_blank(),
-          panel.background = element_rect(fill = "transparent",colour = NA),
-          plot.background = element_rect(fill = "transparent",colour = NA)
+    theme(
+      panel.grid.major = element_blank(),
+      panel.grid.minor = element_blank(),
+      panel.background = element_rect(fill = "transparent", colour = NA),
+      plot.background = element_rect(fill = "transparent", colour = NA)
     )
-print(p)
+  print(p)
   #return(p)
 }
 
@@ -373,10 +439,19 @@ print(p)
 # This routine is a replacement for ggsave, with the difference that it
 # puts the plot in the appropriate language directory. So a save of the plot
 # "foo.pdf" for the English version of the survey would end up in plots/English/foo.pdf.
-plot_save <- function(pathname, height = 4, width = 8, dpi = 600)
+plot_save <- function(pathname,
+                      height = 4,
+                      width = 8,
+                      dpi = 600)
 {
-  ggsave(width = width, height = height, dpi = dpi, units = "in", bg = "transparent",
-         here::here(paste0("plots/", pathname)))
+  ggsave(
+    width = width,
+    height = height,
+    dpi = dpi,
+    units = "in",
+    bg = "transparent",
+    here::here(paste0("plots/", pathname))
+  )
 }
 
 ```
@@ -384,71 +459,79 @@ plot_save <- function(pathname, height = 4, width = 8, dpi = 600)
 
 ```{r read processed survey, include = FALSE}
 # for plots
-survey_name <- "2018 RStudio Learning R Survey"
+survey_name <- "2019 R Community Survey"
 # Before we start, let's define the columns and types of the survey
 
 column_formats = cols(
-  Qtime = col_datetime(format = ""),
-  Qindustry = col_character(),
-  Qtitle = col_character(),
-  Qwork_title = col_character(),
-  Qlanguages = col_character(),
-  Qfirst_language = col_character(),
+  Qtime = col_character(),
   Qr_experience = col_character(),
-  Qr_year = col_double(),
-  Qtime_to_proficiency = col_character(),
-  Qr_learning_path = col_character(),
+  Qr_difficulty = col_double(),
+  Qr_length_to_success = col_character(),
+  Qhow_to_learn_r = col_character(),
   Qreason_to_learn = col_character(),
   Qr_use = col_character(),
-  Qr_length_to_success = col_character(),
+  Qtools = col_character(),
+  Qobstacles_to_starting = col_character(),
+  Qr_year = col_double(),
+  Qr_learning_path = col_character(),
   Qr_difficulty = col_double(),
-  Qr_reason_experienced = col_character(),
+  Qtime_to_proficiency = col_character(),
+  Qreason_to_learn = col_character(),
+  Qmost_difficult_aspect = col_character(),
   Qr_how_often_used = col_character(),
+  Qused_for = col_character(),
   Qr_enjoyment = col_double(),
-  Qr_difficulty_experienced = col_double(),
+  Qrecommend = col_double(),
+  Qtools_with_r = col_character(),
   Qtidyverse_learning = col_character(),
   Qtidyverse_today = col_character(),
-  Qshiny = col_character(),
-  Qunit_tests = col_character(),
   Qlike_best = col_character(),
   Qlike_least = col_character(),
-  Qrecommend = col_double(),
-  Qused_for = col_character(),
-  Qmost_difficult_aspect = col_character(),
-  blank_question = col_character(),
-  Qnot_live_without = col_character(),
-  Qcapability_missing = col_character(),
-  Qtools = col_character(),
-  Qchange_one_thing = col_character(),
+  Qr_problems = col_character(),
+  Qr_discover_packages = col_character(),
+  Qr_share = col_character(),
+  Qr_change = col_character(),
+  Qrobot_test = col_character(),
+  Qrmarkdown = col_character(),
+  Qrmarkdown_apps = col_character(),
+  Qrmarkdown_change = col_character(),
+  Qshiny = col_character(),
+  Qshiny_change  = col_character(),
+  Qpython_use = col_character(),
+  Qpython_apps = col_character(),
+  Qpython_enjoy = col_double(),
+  Qpython_recommend = col_double(),
+  Qpython_change = col_character(),
+  Qlanguages  = col_character(),
+  Qfirst_language = col_character(),
   Qyear_born = col_double(),
-  Qgender = col_character(),
-  Qcountry = col_character(),
-  Qethnicity = col_character(),
-  Qdegree = col_character(),
-  Qteam_r_users = col_double(),
-  Qversion_control = col_character(),
-  Qtools_with_r = col_character(),
-  Qobstacles_to_starting = col_character(),
-  Qbiggest_difficulty = col_character(),
-  Qhow_to_learn_r = col_character(),
-  learner_type = col_character(),
-  Qgender_coded = col_character(),
-  Qethnicity_processed = col_character(),
-  Qethnicity_coded = col_character(),
-  number_responses = col_double()
+  Qgender  = col_character(),
+  Qethnicity  = col_character(),
+  Qdegree  = col_character(),
+  Qcountry  = col_character(),
+  Qindustry  = col_character(),
+  Qtitle  = col_character(),
+  Qwork_title  = col_character(),
+  Qteam_r_users = col_character(),
+  Qevents  = col_character(),
+  Qhear  = col_character()
 )
 
 # get the data
-english_survey <- read_tsv(here::here("data/survey_English.tsv"),
-                   col_types = column_formats)
+english_column_names <-
+  read_tsv(here::here("data/survey-questions-2019-en.csv"))
+english_survey <-
+  read_tsv(here::here("data/2019 English R Community Survey Responses.tsv"),
+           col_types = column_formats)
 english_survey$language <- "English"
-spanish_survey <- read_tsv(here::here("data/survey_Spanish.tsv"),
-                   col_types = column_formats)
-spanish_survey <- spanish_survey %>% select(- blank2_question)
+spanish_survey <-
+  read_tsv(here::here("data/2019 Spanish R Community Survey Responses.tsv"),
+           col_types = column_formats)
 spanish_survey$language <- "Spanish"
 
 survey <- rbind(english_survey, spanish_survey)
-survey_questions <- read_csv(here::here("data/survey_questions.csv"))
+survey_questions <-
+  read_csv(here::here("data/survey-questions-2019-en.csv"))
 # Saving some metadata for later
 respondents <- nrow(survey)
 ```
@@ -457,6 +540,7 @@ respondents <- nrow(survey)
 
 ```{r responses over time, include = FALSE}
 theme_set(theme_classic())
+survey <- survey %>% mutate(Qtime = parse_datetime(survey$Qtime, format="%m/%d/%Y %H:%M:%S")) %>% arrange(Qtime)
 survey <- survey %>% mutate(number_responses = cumsum(!is.na(Qtime)))
 p <- ggplot(survey) + 
   geom_line(aes(x=Qtime, y=number_responses)) + 
@@ -470,7 +554,7 @@ print(p)
 ## Respondent Ages  (All Respondents)
 
 ```{r Respondent Ages, echo = TRUE}
-mean_age <- mean(2018 - survey$Qyear_born, na.rm = TRUE)
+mean_age <- mean(2019 - survey$Qyear_born, na.rm = TRUE)
 
 ggplot(survey) +
   geom_histogram(aes(2018 - Qyear_born), binwidth = 1,  fill = params$bar_colors, color="white") +

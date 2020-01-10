@@ -19,9 +19,63 @@ library(lubridate)
 library(RColorBrewer)
 library(readr)
 
+column_formats = cols(
+ Qtime = col_datetime(format = ""),
+ Qr_experience = col_character(),
+ Qr_difficulty = col_double(),
+ Qr_length_to_success = col_character(),
+ Qhow_to_learn_r = col_character(),
+ Qreason_to_learn = col_character(),
+ Qr_use = col_character(),
+ Qtools = col_character(),
+ Qobstacles_to_starting = col_character(),
+ Qr_year = col_double(),
+ Qr_learning_path = col_character(),
+ Qr_difficulty = col_double(),
+ Qtime_to_proficiency = col_character(),
+ Qreason_to_learn = col_character(),
+ Qmost_difficult_aspect = col_character(),
+ Qr_how_often_used = col_character(),
+ Qused_for = col_character(),
+ Qr_enjoyment = col_double(),
+ Qrecommend = col_double(),
+ Qr_tools = col_character(),
+ Qtidyverse_learning = col_character(),
+ Qtidyverse_today = col_character(),
+ Qlike_best = col_character(),
+ Qlike_least = col_character(),
+ Qr_problems = col_character(),
+ Qr_discover_packages = col_character(),
+ Qr_share = col_character(),
+ Qr_change = col_character(),
+ Qrobot_test = col_character(),
+ Qrmarkdown = col_character(),
+ Qrmarkdown_apps = col_character(),
+ Qrmarkdown_change = col_character(),
+ Qshiny = col_character(),
+ Qshiny_change  = col_character(),
+ Qpython_use = col_character(),
+ Qpython_apps = col_character(),
+ Qpython_enjoy = col_double(),
+ Qpython_recommend = col_double(),
+ Qpython_change = col_character(),
+ Qlanguages  = col_character(),
+ Qfirst_language = col_character(),
+ Qyear_born = col_double(),
+ Qgender  = col_character(),
+ Qethnicity  = col_character(),
+ Qdegree  = col_character(),
+ Qcountry  = col_character(),
+ Qindustry  = col_character(),
+ Qtitle  = col_character(),
+ Qwork_title  = col_character(),
+ Qevents  = col_character(),
+ Qhear  = col_character()
+)
+
 googledrive::drive_deauth()
 googledrive::drive_auth(email = "carl@rstudio.com") # if we don't do this explicitly, auth doesn't really work for me.
-english_sheet <- drive_get("2019 English R Community Survey Responses")
+english_sheet <- drive_get("2019 English R Community Survey Responses", col_types = column_formats)
 english_survey <- sheets_read(english_sheet, sheet = "Form Responses 1")
 spanish_sheet <- drive_get("2019 Spanish R Community Survey Responses")
 spanish_survey <- sheets_read(spanish_sheet, sheet = "Form Responses 1")

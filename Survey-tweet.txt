@@ -1,0 +1,6 @@
+Want data about how and why people learn R? If so, please fill out our 2nd annual survey so that we can better understand today's R community.
+
+English: https://rstd.io/r-survey-en,
+Spanish: https://rstd.io/r-survey-es.
+
+Resulting data will be made public in Feb, 2020.  #rstats
