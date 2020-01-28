@@ -35,9 +35,9 @@ The R Markdown document for processing the survey is `process_survey.Rmd`. You m
 
 ### 2019
 
-The new 2019 survey is just completing development and we plan to launch it around December 11, 2019.
+The new 2019 survey launched on December 13, 2019 and completed on January 10, 2020.
 
-The survey in 2019 will be largely the same as in 2018, but with the addition of a few more questions regarding Python, the discoverability of packages, and R Markdown. We still are targeting roughly 10 minutes to complete the survey.
+The survey in 2019 is largely the same as in 2018, but with the addition of a few more questions regarding Python, the discoverability of packages, and R Markdown. We have not published the processed results yet, but plan to do so by the end of February. I'll do my best to publish a simple R script to ingest the material for others wishing to process the data.
 
 
 Carl Howe
