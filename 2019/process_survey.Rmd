@@ -55,15 +55,16 @@ tally_question <-
     quoted_question <- enquo(question_name)
     filtered_df <- df
     if (rm.na) {
-      filtered_df <- filtered_df %>% filter(!is.na(!!quoted_question))
+      filtered_df <- filtered_df %>% 
+        filter(!is.na(!!quoted_question))
     }
     results_df <- filtered_df %>%
       count(!!quoted_question, sort = sort) %>%
-      add_tally(name) %>%
+      add_tally(n, name = "nn") %>%
       mutate(percent = round(n / nn * 100, 1),
              prop_responses = n / nn)
     return(results_df)
-  }
+}
 
 # Split and aggregate: derives multiple answers to a single question by separating on commas and returning
 # the results as an embedded list in the dataframe.
@@ -111,18 +112,17 @@ top_n_choices <-
     return(top_n)
   }
 
-question_text <-
-  function(question_name_string,
+question_text <-function(question_name_string,
            respondents_note = "",
            wrap_length = 55)
   {
-    question_text <-
+    qtext <-
       survey_questions %>% filter(Question_name == question_name_string) %>% select(Question_text)
-    if (str_length(question_text$Question_text) >= wrap_length) {
+    if (str_length(qtext$Question_text) >= wrap_length) {
       return_text <-
-        question_text$Question_text %>% str_wrap(width = wrap_length - 5)
+        qtext$Question_text %>% str_wrap(width = wrap_length - 5)
     } else {
-      return_text <- question_text$Question_text
+      return_text <- qtext$Question_text
     }
     return(paste0('"', return_text, '" ', respondents_note))
   }
@@ -356,9 +356,9 @@ lollipop_chart <- function(df,
       size = 1.5,
       alpha = .7
     ) +
-    geom_text(aes(label = scales::percent(prop_responses, accuracy = pct_accuracy)),
-              hjust = -.25,
-              color = "black") +
+   geom_text(aes(label = scales::percent(prop_responses, accuracy = pct_accuracy)),
+             hjust = -.25,
+             color = "black") +
     labs(
       title = title_string,
       subtitle = subtitle_string,
@@ -519,22 +519,105 @@ column_formats = cols(
 
 # get the data
 english_column_names <-
-  read_tsv(here::here("data/survey-questions-2019-en.csv"))
+  read_tsv(here::here("data/survey-questions-2019-en.tsv"))
 english_survey <-
-  read_tsv(here::here("data/2019 English R Community Survey Responses.tsv"),
-           col_types = column_formats)
+  read_csv(file = here::here("data/2019 English R Community Survey Responses.csv"),
+           col_types = column_formats, col_names = english_column_names$Question_name, skip = 1)
+names(english_survey) <- english_column_names$Question_name
 english_survey$language <- "English"
 spanish_survey <-
-  read_tsv(here::here("data/2019 Spanish R Community Survey Responses.tsv"),
-           col_types = column_formats)
+  read_csv(here::here("data/2019 Spanish R Community Survey Responses.csv"),
+           col_types = column_formats, col_names = english_column_names$Question_name, skip = 1)
+names(spanish_survey) <- english_column_names$Question_name
 spanish_survey$language <- "Spanish"
 
-survey <- rbind(english_survey, spanish_survey)
+survey_raw <- rbind(english_survey, spanish_survey)
 survey_questions <-
   read_csv(here::here("data/survey-questions-2019-en.csv"))
 # Saving some metadata for later
+respondents_raw <- nrow(survey_raw)
+survey <- survey_raw %>%
+  mutate(robot_test = str_to_lower(Qrobot_test)) %>%
+  filter(!is.na(robot_test)) %>% 
+  filter(robot_test == "8" | robot_test == "eight" | robot_test == "ocho")
 respondents <- nrow(survey)
+survey_save <- survey
+
 ```
+
+```{r survey pre-processing, include=FALSE, eval = TRUE}
+# this section is eval = FALSE because most users will want to use the 
+# processed version of the survey, survey_{language}.tsv in # the data/ directory of the repo.
+# This chunk is used only to create that file.
+
+survey <- survey_save   # This is just to ensure I get the original survey each time I run this block.
+
+# Make the times correct times
+est <- locale(tz="US/Eastern")
+survey$Qtime <- parse_datetime(as.character(survey$Qtime), format = "%m/%d/%Y %H:%M:%S", locale=est)
+
+# This learner_type variable defines if someone is a recent R learner or not for faceting
+survey <- survey %>% 
+  mutate(learner_type = ifelse(Qr_year < 1900, NA, ifelse(Qr_year <= 2016, "Early Learner", "Recent Learner")))
+
+# This codes the open-text gender question into a more friendly form for analysis
+survey$Qgender <- survey$Qgender %>% tolower() %>% str_trim() %>% str_replace_all("[[:punct:]]", "")
+
+opentext_gender_dictionary <- read_csv("dictionary/opentext_gender_dictionary.csv")
+gender_dictionary <- opentext_gender_dictionary %>%  mutate(Input = str_replace_all(Input, "[[:punct:]]", ""))
+# The following is weird -- its a function within the gendercodeR package that should be exported, but doesn't seem to
+# show up. you can fix that by sourcing the function definition as follows:
+    source("gendercoder/R/genderCode.R")
+
+survey <- genderRecode(survey, method = "narrow", 
+                       genderColName = "Qgender",
+                       outputColName = "Qgender_coded",
+                       customDictionary = gender_dictionary)
+survey <- survey %>% mutate(Qgender_coded = ifelse(Qgender_coded == "", NA, Qgender_coded))
+uncoded_genders <- survey %>% group_by(Qgender_coded) %>% count(sort = TRUE)
+write_csv(uncoded_genders, "data/uncoded_genders_language.csv")  # For detecting open ends we should code
+
+# This codes the ethnicity question for further analysis
+# We recognize that this is both an offensive question to some and an imperfect classification
+# Its purpose is to simply measure how diverse our community is. Our rationale is that if
+# we do not attempt to measure the R community's diversity, then our claims of community diversity
+# are meaningless because our only measurements are anecdotal.
+
+opentext_ethnicity_dictionary <- read_csv("dictionary/opentext_ethnicity_dictionary.csv")
+ethnicity_dictionary <- opentext_ethnicity_dictionary %>%  
+  mutate(Input = str_replace_all(Input, "[[:punct:]]", ""))
+
+# Yes, I know this will cause false categorizations of open-ended responses with commas as Multiple Ethnicities
+# That said, I can't see an obvious other way to detect multiple ethnicities beyond the dictionary matches below
+
+survey <- survey %>% 
+  mutate(Qethnicity_processed = ifelse(str_detect(Qethnicity, ","), "Multiple Ethnicities", Qethnicity))
+survey$Qethnicity_processed <- survey$Qethnicity_processed %>% tolower() %>% str_trim() %>% str_replace_all("[[:punct:]]", "")
+survey <- survey %>% 
+  left_join(ethnicity_dictionary, by=c("Qethnicity_processed" = "Input"))
+uncoded_ethnicities <- survey %>% 
+  anti_join(ethnicity_dictionary, by=c("Qethnicity_processed" = "Input")) %>% 
+  count(Qethnicity_processed, sort = TRUE) 
+write_csv(uncoded_ethnicities, "dictionary/uncoded_ethnicities_language.csv")  # For detecting open ends we should code
+
+# Qethnicity_coded got created by the left_join above.....
+
+survey <- survey %>% 
+  mutate(Qethnicity_coded = ifelse(Qethnicity_coded == "Prefer not to answer",
+                                   NA, 
+                                   Qethnicity_coded))
+collected_ethnicities <- survey %>% group_by(Qethnicity_coded) %>% count(sort = TRUE)
+
+## Let's save the survey data at this point with the question names, 
+## augmented gender and ethnicity coding
+## so that others don't have to go through this hassle.
+survey$number_responses <- nrow(survey)
+write_delim(survey, here::here("data/", paste0("survey_", params$language,".tsv")), delim="\t")
+theme_set(theme_classic())
+
+```
+
+
 
 ## Responses over time
 
@@ -577,6 +660,12 @@ genders <- survey %>%
   mutate(unit = 1) %>% 
   drop_na()
 
+# genders <- survey %>% 
+#   group_by(Qgender) %>% 
+#   count(sort = TRUE) %>% 
+#   mutate(unit = 1) %>% 
+#   drop_na()
+
 gender_responses <- sum(genders$n, na.rm = TRUE)
 genders <- genders %>% 
   group_by(unit) %>% 
@@ -586,9 +675,10 @@ genders <- genders %>%
          label = ifelse(percent >= 10, paste0(Qgender_coded, "\n", round(percent), "%"), "")) %>% 
   arrange(desc(percent))
 genders <- genders %>% 
-  mutate(Qgender_coded = factor(as.character(Qgender_coded), levels = rev(c("male", "female", "sex and gender diverse", "unclear"))))
+  mutate(Qgender_coded = factor(as.character(Qgender_coded), levels = rev(c("male", "female", "sex and gender diverse", "unclear")))) %>% 
+  drop_na()
 
-lollipop_chart_counts(df                 = genders,
+lollipop_chart(df                 = genders,
           column_name        = Qgender_coded,
           subtitle_string    = question_text("Qgender", "(All respondents)"),
           title_string       = "",
@@ -655,9 +745,10 @@ top_10_industries <- top_n_choices(r_industry_results, Output, r_industry_respon
 top_10_industries <- top_10_industries %>% 
   mutate(Qindustry = factor(Output, levels = rev(Output)),
          position = cumsum(percent) - percent / 2,
-         label = ifelse(percent >= 5, paste0(Output, "\n", round(percent), "%"), ""))
+         label = ifelse(percent >= 5, paste0(Output, "\n", round(percent / 100), "%"), ""),
+         percent = percent / 100)
 
-lollipop_chart(df                     = top_10_industries,
+lollipop_chart(df          = top_10_industries,
           column_name            = Qindustry,
           subtitle_string        = question_text("Qindustry", "(All respondents)"),
           fill_color             = params$bar_colors,
@@ -695,7 +786,7 @@ lollipop_chart(ethnicities,
                fill_color = params$bar_colors,
                subtitle_string =  question_text("Qethnicity", "(All respondents)"),
                caption_string = paste0(survey_name, ", n = ", num_ethnicity_responses))
-plot_save("Respondent Ethnicities (All Respondents).pdf")
+plot_save("Respondent Ethnicities (All Respondents).pdf", height = 2.5)
   
 ```
 
@@ -839,7 +930,9 @@ plot_save("Ages When Respondents Learned R.pdf", height = 3)
 
 ## Number of People You Work With That Know R By Learner Type
 
-```{r Number R Team Members, echo = TRUE}
+This plot is currently disabled
+
+```{r Number R Team Members, echo = TRUE, eval = FALSE}
 team_num_survey <- survey %>% 
   select(learner_type, Qteam_r_users) %>% 
   filter(!is.na(learner_type)) %>% 
@@ -870,7 +963,9 @@ plot_save("R Team Size Distribution by Learner Type.pdf")
 
 ## Respondent Ages By Learner Type
 
-```{r R Learning Ages By Learner Type, echo = TRUE}
+This plot is currently disabled
+
+```{r R Learning Ages By Learner Type, echo = TRUE, eval = FALSE}
 
 ages <- survey %>%
   filter(!is.na(learner_type) & Qyear_born < 2010) %>% 
@@ -984,7 +1079,7 @@ plot_save("Time To Achieve Proficiency In R (R Users Only).pdf", height = 3)
 
 r_why_dictionary <- read_delim("dictionary/r_why_dictionary.tsv", delim = "\t", col_types = "cc")
 r_why_responses <- survey %>% 
-  mutate(why = as.character(Qr_reason_experienced)) %>% 
+  mutate(why = as.character(Qreason_experienced)) %>% 
   select(why)
 r_why <- r_why_responses %>% 
   drop_na() %>% 
@@ -1003,7 +1098,7 @@ r_why_results <- r_why_results %>%
 
 lollipop_chart(df                 = r_why_results,
           column_name             = Output,
-           subtitle_string        = question_text("Qr_reason_experienced", "(R Users Only)", 75),
+          subtitle_string         = question_text("Qr_reason_experienced", "(R Users Only)", 75),
           caption_string          = paste0("RStudio Learning R Survey, n = ",r_why_n),
           fill_color              = params$bar_colors)
 plot_save("Reason To Learn R (R Users Only).pdf")
@@ -1144,6 +1239,51 @@ plot_save("What Do You Use R For (R Users Only).pdf")
 
 ```
 
+## What is Python Used For?
+
+```{r Python Used For, echo = TRUE}
+python_use_dictionary <- read_delim("dictionary/use_dictionary.tsv", delim = "\t", col_types = "cc")
+
+# Breaks up uses into nested lists
+uses <- survey %>% mutate(application = purrr::map(Qpython_apps, str_split, ", ")) %>% unnest(cols = c(application))
+apps_used <- uses %>% unnest(cols = c(application)) %>% select(application)
+parsed_use_used <- apps_used %>% 
+  left_join(python_use_dictionary, c("application" = "Input"))
+parsed_use_exceptions <- apps_used %>% 
+  anti_join(python_use_dictionary, c("application" = "Input"))
+# Count the non-NA entries now
+use_responses <- sum(!is.na(survey$Qpython_apps))
+
+parsed_use_tally <- parsed_use_used %>% count(Output, sort = TRUE)
+
+parsed_use_tally <- parsed_use_tally %>% 
+  mutate(percent = round(n / use_responses * 100),
+         prop_responses = n / use_responses) %>% 
+  arrange(desc(percent))
+app_plot <- head(parsed_use_tally, 15) %>% 
+  ungroup() %>% 
+  arrange(prop_responses)
+
+other <- tail(parsed_use_tally, -15) %>% 
+  ungroup() %>% 
+  summarize(Output = "Other", 
+            n = sum(n), 
+            percent = round(n / use_responses * 100),
+            prop_responses = n / use_responses)
+
+app_plot <- rbind(other, app_plot) %>% drop_na()
+app_plot <- app_plot %>% 
+  mutate(Output = factor(as.character(Output), levels = Output))
+
+lollipop_chart(app_plot, 
+               Output, 
+               fill_color = params$bar_colors,
+               subtitle_string =  question_text("Qpython_apps", "(Python users only)", 75),
+               caption = paste0(survey_name, ", n = ", use_responses))
+plot_save("What Do You Use Python For.pdf")
+
+```
+
 ## Net Promoter Score  (R Users Only)
 
 ```{r Net Promoter Score, echo = TRUE}
@@ -1194,42 +1334,6 @@ lollipop_chart(top_15_items,
 plot_save("What Tools Do You Use With R (R Users Only).pdf")
 ```
 
-## Greatest Difficulty in Learning R.
-
-```{r Greatest difficulting learning, echo = TRUE}
-
-difficulties_dictionary <- read_delim("dictionary/difficulties_dictionary.tsv", delim = "\t", col_types = "cc")
-
-# Breaks up uses into nested lists
-difficulty_splits <- survey %>% transmute(diffs = purrr::map(Qbiggest_difficulty, str_split, ", ")) %>% unnest()
-difficulties_cited <- difficulty_splits %>% unnest() %>% select(diffs)
-parsed_difficulties <- difficulties_cited %>% 
-  left_join(difficulties_dictionary, c("diffs" = "Input"))
-difficulties_exceptions <- difficulties_cited %>% 
-  anti_join(difficulties_dictionary, c("diffs" = "Input"))
-# Count the non-NA entries now
-difficulty_responses <- sum(!is.na(survey$Qbiggest_difficulty))
-
-difficulties_tally <- parsed_difficulties %>% count(Output, sort = TRUE)
-
-difficulty_answers <- difficulties_tally %>% select(Output) %>%
-  filter(!is.na(Output))
-num_difficulties <- sum(!is.na(survey$Qbiggest_difficulty))
-difficulties <- difficulties_tally %>% 
-  mutate(percent        = round(n / num_difficulties * 100),
-         prop_responses = n / num_difficulties)
-top_12_difficulties <- top_n_choices(difficulties, Output, num_difficulties, 12)
-top_12_difficulties <- top_12_difficulties %>%
-  mutate(Output = factor(as.character(Output), levels = rev(Output)))
-
-lollipop_chart(top_12_difficulties, 
-          column_name = Output, 
-          fill_color = params$bar_colors, 
-          subtitle_string = question_text("Qbiggest_difficulty", "(R users only)"),
-          caption_string = paste0(survey_name, ", n = ", num_difficulties))
-plot_save("Difficulties In Learning R  (R Users Only).pdf")
-
-```
 
 ## Frequency of R Use (R Users Only)
 
@@ -1372,7 +1476,10 @@ plot_save("Shiny Use Frequency Today (R Users Only).pdf")
 
 
 ## Version Control Use (R Users Only)
-```{r version control, echo = TRUE}
+
+This question wasn't asked in 2019.
+
+```{r version control, echo = TRUE, eval = FALSE}
 version_control_use_dictionary <- read_delim("dictionary/version_control_dictionary.tsv", delim = "\t", col_types = "cc")
 version_control_use_responses <- survey %>% select(Qversion_control)
 version_control_use_parsed <- version_control_use_responses %>% 
@@ -1397,7 +1504,9 @@ plot_save("Version Control Use Frequency Today (R Users Only).pdf")
 
 ## Unit Tests (R Users Only)
 
-```{r Unit Tests, echo = TRUE}
+This question wasn't asked in 2019.
+
+```{r Unit Tests, echo = TRUE, eval = FALSE}
 
 unit_tests_use_dictionary <- read_delim("dictionary/unit_test_use_dictionary.tsv", delim = "\t", col_types = "cc")
 unit_tests_use_responses <- survey %>% select(Qunit_tests)
@@ -1423,7 +1532,9 @@ plot_save("Unit Tests Use Frequency Today (R Users Only).pdf")
 
 ## Packages We Cannot Live Without (R Users Only)
 
-```{r Packages We Cannot Live Without, echo = TRUE}
+This question wasn't asked in 2019.
+
+```{r Packages We Cannot Live Without, echo = TRUE, eval = FALSE}
 library(tidytext)
 data(stop_words)
 
