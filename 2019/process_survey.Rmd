@@ -1359,12 +1359,15 @@ ggplot(recommend_scores) +
   geom_text(aes(x = Qrecommend, y = percent, label = paste0(round(percent), "%")), 
             color="black", size=3, nudge_y = 3) +
   scale_x_continuous(breaks = 1:10) +
-    labs(title = question_text("Qrecommend", "(R users only)", 70),
+    labs(title = question_text("Qrecommend", "(R users only)", 35),
        subtitle = sprintf("Net Promoter Score = %s,        Rating: %s", nps, npr),
        caption = paste0(survey_name, " (R Users Only), n = ", responses),
-       x="Score", y="Count") +
+       x="Score", y="") +
   theme(panel.background = element_rect(fill = "transparent",colour = NA),
-        plot.background = element_rect(fill = "transparent",colour = NA))
+        plot.background = element_rect(fill = "transparent",colour = NA),
+        axis.text.y = element_blank(),
+        axis.ticks.y = element_blank())
+
 plot_save("Net Promoter Score.pdf")
 ```
 

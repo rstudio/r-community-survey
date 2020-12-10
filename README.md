@@ -35,10 +35,27 @@ The R Markdown document for processing the survey is `process_survey.Rmd`. You m
 
 ### 2019
 
-The new 2019 survey launched on December 13, 2019 and completed on January 10, 2020.
+The 2019 survey launched on December 13, 2019 and completed on January 10, 2020.
 
-The survey in 2019 is largely the same as in 2018, but with the addition of a few more questions regarding Python, the discoverability of packages, and R Markdown. We have not published the processed results yet, but plan to do so by the end of February. I'll do my best to publish a simple R script to ingest the material for others wishing to process the data.
+The survey in 2019 was largely the same as in 2018, but with the addition of a few more questions regarding Python, the discoverability of packages, and R Markdown. The processing script for 2019 remains incomplete (RStudio::conf 2020 and COVID-19 got in the way), but the directory structure follows the same format 2018. Not all dictionaries have been updated for 2019, so not every chunk of the processing script (process_survey.Rmd) will run. That said, the plots for the questions that I did analyze are in the **plots/** directory.
 
+### 2020
+
+The 2020 survey deleted several questions about the expected difficulty of learning R, while adding some additional questions about Python tools, Shiny applications, operating systems being used, and whether respondents feel as if they are part of the R community.
+
+The 2020 survey will launch on December 10, 2020, and we expect it to complete on January 8, 2021.
+
+You can take the survey at:
+
+- English version: <https://rstd.io/r-survey-en>
+- Spanish version: <https://rstd.io/r-survey-es>
+
+You can view the survey questions as they are going to the field in the PDF files:
+
+- 2020 English R Community Survey - Google Forms.pdf
+- 2020 Spanish R Community Survey - Google Forms.pdf
+
+Those question lists are in PDF format because Google Forms doesn't really have any easy way to download the contents of a form.
 
 Carl Howe
 RStudio, Inc.
