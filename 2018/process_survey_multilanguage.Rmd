@@ -347,10 +347,19 @@ lollipop_chart_counts <- function(df,
 # This routine is a replacement for ggsave, with the difference that it
 # puts the plot in the appropriate language directory. So a save of the plot
 # "foo.pdf" for the English version of the survey would end up in plots/English/foo.pdf.
-plot_save <- function(pathname)
+plot_save <- function(pathname,
+                      height = 4,
+                      width = 8,
+                      dpi = 600)
 {
-  ggsave(width = 6, height = 3.5, dpi = 600, units = "in", 
-         here::here(paste0("plots/", params$language, "/", pathname)))
+  ggsave(
+    width = width,
+    height = height,
+    dpi = dpi,
+    units = "in",
+    bg = "transparent",
+    here::here(paste0("plots/", pathname))
+  )
 }
 
 ```
@@ -432,7 +441,7 @@ uncoded_genders <- survey %>% group_by(Qgender_coded) %>% count(sort = TRUE)
 # we do not attempt to measure the R community's diversity, then our claims of community diversity
 # are meaningless because our only measurements are anecdotal.
 
-opentext_ethnicity_dictionary <- read_csv("data/opentext_ethnicity_dictionary.csv")
+opentext_ethnicity_dictionary <- read_csv("dictionary/opentext_ethnicity_dictionary.csv")
 ethnicity_dictionary <- opentext_ethnicity_dictionary %>%  
   mutate(Input = str_replace_all(Input, "[[:punct:]]", ""))
 
@@ -448,9 +457,9 @@ uncoded_ethnicities <-survey %>%
   anti_join(ethnicity_dictionary, by=c("Qethnicity_processed" = "Input")) %>% 
   count(Qethnicity_processed, sort = TRUE) 
 survey <- survey %>% 
-  mutate(Qethnicity_coded = ifelse(Qethnicity_coded == "Prefer not to answer",
+  mutate(Qethnicity_coded = ifelse(Qethnicity_processed == "Prefer not to answer",
                                    NA, 
-                                   Qethnicity_coded))
+                                   Qethnicity_processed))
 collected_ethnicities <- survey %>% group_by(Qethnicity_coded) %>% count(sort = TRUE)
 
 ## Let's save the survey data at this point with the question names, 
@@ -525,7 +534,7 @@ spanish_survey <- read_tsv(here::here("data/survey_Spanish.tsv"),
                    col_types = column_formats)
 spanish_survey <- spanish_survey %>% select(- blank2_question)
 survey <- rbind(english_survey, spanish_survey)
-survey_questions <- read_csv(here::here("slides/data/survey_questions.csv"))
+survey_questions <- read_csv(here::here("data/survey_questions.csv"))
 # Saving some metadata for later
 respondents <- nrow(survey)
 ```
@@ -579,13 +588,13 @@ genders <- genders %>%
 genders <- genders %>% 
   mutate(Qgender_coded = factor(as.character(Qgender_coded), levels = rev(c("male", "female", "sex and gender diverse", "unclear"))))
 
-lollipop_chart_counts(df                 = genders,
+lollipop_chart(df                 = genders,
           column_name        = Qgender_coded,
           subtitle_string    = question_text("Qgender", "(All respondents)"),
           title_string       = "",
           fill_color         = params$bar_colors,
           caption_string     = paste0(survey_name, ", n = ",gender_responses))
-plot_save("Respondent Identified Genders (All Respondents).pdf")
+plot_save("Respondent Identified Genders (All Respondents).pdf", height = 2, width = 8, dpi=600)
 ```
 
 
@@ -681,7 +690,7 @@ lollipop_chart(ethnicities,
                fill_color = params$bar_colors,
                subtitle_string =  question_text("Qethnicity", "(All respondents)"),
                caption_string = paste0(survey_name, ", n = ", num_ethnicity_responses))
-plot_save("Respondent Ethnicities (All Respondents).pdf")
+plot_save("Respondent Ethnicities (All Respondents).pdf", height = 2.5, dpi=600)
   
 ```
 

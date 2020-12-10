@@ -380,6 +380,61 @@ lollipop_chart <- function(df,
   #return(p)
 }
 
+## Plot a simple lollipop plot. Intended to be used after chop_and_prop
+##     lollipop_chart(df = ethnicities,
+##               column_name            = Qethnicity_coded,
+##               original_column_string = "Qethnicity",
+##               text_position          = position        ## the name of the position column in the df
+##               title_string           = "Ethnicities",
+##               fill_legend_title      = "Respondent Ethnicity"
+##               colors                 = "Set1"         From the RColorBrewer palettes
+
+lollipop_chart_100pc <- function(df,
+                           column_name,
+                           fill_color,
+                           title_string = NULL,
+                           subtitle_string = "",
+                           caption_string = survey_name,
+                           pct_accuracy = 1) {
+  quoted_column <- enquo(column_name)
+  nudge_amount <- max(df$prop_responses, na.rm = TRUE) * 0.05
+  df <- df %>%
+    mutate(xaxis_factor = suppressWarnings(fct_relevel(
+      fct_reorder(!!quoted_column, prop_responses), "Other"
+    )))
+  p <- ggplot(df, aes(x = xaxis_factor,
+                      y = prop_responses)) +
+    geom_point(color = fill_color, size = 3) +
+    geom_segment(
+      aes(xend = fct_rev(!!quoted_column), yend = 0),
+      color = fill_color,
+      size = 1.5,
+      alpha = .7
+    ) +
+   geom_text(aes(label = scales::percent(prop_responses, accuracy = pct_accuracy)),
+             hjust = -.25,
+             color = "black") +
+    labs(
+      title = title_string,
+      subtitle = subtitle_string,
+      caption = caption_string,
+      x = "",
+      y = ""
+    ) +
+    coord_flip() +
+    scale_y_continuous(labels = scales::percent_format(accuracy = 1),
+                       limits = c(0, 1.05)) +
+    theme(
+      panel.grid.major = element_blank(),
+      panel.grid.minor = element_blank(),
+      panel.background = element_rect(fill = "transparent", colour = NA),
+      plot.background = element_rect(fill = "transparent", colour = NA)
+    )
+  print(p)
+  #return(p)
+}
+
+
 ## Plot a simple lollipop plot the plots counts instead of percentages.
 ## We assume the counts are in the variable named "n"
 ##     lollipop_chart_counts(df = ethnicities,
@@ -1230,12 +1285,13 @@ app_plot <- rbind(other, app_plot) %>% drop_na()
 app_plot <- app_plot %>% 
   mutate(Output = factor(as.character(Output), levels = Output))
 
-lollipop_chart(app_plot, 
+lollipop_chart_100pc(app_plot, 
                Output, 
                fill_color = params$bar_colors,
-               subtitle_string =  question_text("Qused_for", "(R users only)", 75),
+               subtitle_string =  question_text("Qused_for", "", 75),
                caption = paste0(survey_name, ", n = ", use_responses))
 plot_save("What Do You Use R For (R Users Only).pdf")
+plot_save("What Do You Use R For.jpg")
 
 ```
 
@@ -1275,12 +1331,14 @@ app_plot <- rbind(other, app_plot) %>% drop_na()
 app_plot <- app_plot %>% 
   mutate(Output = factor(as.character(Output), levels = Output))
 
-lollipop_chart(app_plot, 
+lollipop_chart_100pc(app_plot, 
                Output, 
                fill_color = params$bar_colors,
-               subtitle_string =  question_text("Qpython_apps", "(Python users only)", 75),
+               subtitle_string =  question_text("Qpython_apps", "", 75),
+#               subtitle_string =  "What do you use Python for most?",
                caption = paste0(survey_name, ", n = ", use_responses))
 plot_save("What Do You Use Python For.pdf")
+plot_save("What Do You Use Python For.jpg")
 
 ```
 
