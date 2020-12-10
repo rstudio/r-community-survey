@@ -1,5 +1,5 @@
-# learning-r-survey README
-This repo contains the survey instruments, analysis documents, and data from the RStudio learning R survey. This survey was run in December 2018, and we are now preparing to launch a second iteration in December 2019, with results to be published in January 2020.
+# r-community-survey README
+This repo contains the survey instruments, analysis documents, and data from the RStudio R Community Survey (formerly the R Learning Survey). This survey was run in December 2018, and we are now preparing to launch a second iteration in December 2019, with results to be published in January 2020.
 
 This repo is organized simply:
 
