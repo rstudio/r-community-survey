@@ -1,0 +1,75 @@
+Change Log for 2020 R Community Survey
+
+Introduction:
+This comment is actually about the introductory text of previous surveys. The phrasing "You need not respond to the demographic questions" sounds different to me than "You can choose not to respond to the demographic questions", it sounds more like "You should not respond". I think the phrasing may not be super clear for ESL folks, so I might suggest rephrasing it.
+"You need not respond to the demographic questions" changed to "You can choose not to respond to the demographic questions" Puede optar por no responder las preguntas demográficas que recopilan datos como la edad, la identidad de género, la etnia y el nivel de educación formal.
+Github changed to GitHub
+Date data will be published changed from February 2020 to February 2021
+Question 2: Delete
+Question 3: Delete
+Question 4: How do you think you would go about the process of learning R
+Change question text to: What's your plan for learning R?
+Questions 5: Which statement most closely reflects the primary reason why you are interested in learning R?
+Change "I am intellectually curious about R" to "I am personally interested in R".
+Change "I would like to use a specific R package (ggplot, caret, rmarkdown)" to "I would like to use specific R packages (such as tidyverse, tidymodels, or rmarkdown)
+Delete "someone in the R community recommended it to me"
+Question 6: If you were to learn R, what do you think you'd use it for.
+Change answer "data transformation" to "data cleaning or manipulation".
+Combine "Modeling" and "Machine Learning" into "Modeling/machine learning"
+Change "Text processing" to "Text analysis"
+Move "Clinical Trials" up to under "Medicine"
+Question 8: What do you think is the biggest obstacle you must overcome in trying to learn R? The choices below are only suggestions; if we haven't listed your obstacle, please choose "Other" and add your obstacle in the text. 
+Move "getting started" to position 1 and change it to "Just getting started"
+Change "data types" to "Understanding R's data types"
+Change "Documentation" to "Using R's documentation"
+Change "Error messages" to "Decoding R's error messages"
+Change "Language syntax" to "Learning R syntax"
+Delete "Language irregularities"
+Question 11: Delete (Compared with other technical topics you've learned in school and on the job, on a scale of 1 to 5, how difficult has it been for you to learn R?)
+Question 12: Delete (Roughly how long did it take you to achieve proficiency in R?)
+Acaba de empezarQuestion 14: What do you think was the biggest obstacle you had to overcome in learning R?
+Add text to question, "The choices below are only suggestions; if we haven't listed your obstacle, please choose "Other" and add your obstacle in the text."
+Move "getting started" to position 1 and change it to "Just getting started"
+Change "data types" to "Understanding R's data types"
+Change "Documentation" to "Using R's documentation"
+Change "Error messages" to "Decoding R's error messages"
+Change "Language syntax" to "Learning R syntax"
+Delete "Language irregularities"
+Question 16: What applications do you use R for most? (check all that apply)
+Change answer "data transformation" to "data cleaning or manipulation".
+Combine "Modeling" and "Machine Learning" into "Modeling/machine learning"
+Change "Text processing" to "Text analysis"
+Move "Clinical Trials" up to under "Medicine"
+Question 19: Which tools do you use with your R applications? (please check all that apply
+Change Rstudio.cloud to RStudio Cloud
+Add Tableau
+Question 25: How do you share the results that you create in R? Check all that apply.
+Change "Github" to "GitHub"
+Question 26: Looking ahead, how do you expect your use of R to change in 2020?
+Change Question date to 2021
+Questions 27: Robot question
+Change question text to "To help us ensure that you are not a robot, please type the value of fifteen divided by three in the box below. Please type your answer as a word; for example if you want 3 to be your answer, type "three"."
+Question 30: Looking forward, how do you expect your use of R Markdown to change in 2020?
+Change 2020 to 2021.
+Question 31; How often do you currently use Shiny, either as a developer or user? Choose the statement that most closely matches your use.
+Change text above to include either as a developer or user.
+Change answers to be the same as RMarkdown question 28
+Question 31.5: new question: What applications do you use Shiny for? (check all that apply)
+Data exploration
+Dashboards
+Mapping applications
+Interactive tables
+Narrative storytelling with text and data
+Question 32: Looking forward, how do you expect your use of Shiny to change in 2020?
+Change date to 2021.
+Question 35.5: What tools do you use with your Python applications? (check all that apply)
+Responses to be provided
+Add Anaconda
+Add R
+Question 39: Looking forward, how do you expect your use of Python to change in 2020
+Change date to 2021.
+Question 40: What computer tools and/or languages have you used besides R?
+Change question text to "What computer languages or tools are you comfortable coding with today?"
+Add Julia
+New Question: What operating system do you do your R work on
+New Question: Do you feel like you are part of the R Community?
