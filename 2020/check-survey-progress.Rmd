@@ -20,12 +20,12 @@ library(RColorBrewer)
 library(readr)
 
 googledrive::drive_deauth()
-options(gargle_oauth_email = "carl@rstudio.com")
-drive_auth(email = "carl@rstudio.com")
+googledrive::drive_auth()
 english_sheet <- drive_get("2020 English R Community Survey Responses")
 english_survey <- range_read(ss=english_sheet)
 spanish_sheet <- drive_get("2020 Spanish R Community Survey Responses")
-spanish_survey <- sheets_read(spanish_sheet, sheet = "Form Responses 1")
+spanish_survey <- range_read(spanish_sheet)
+print(glue("Total responses are {nrow(english_survey) + nrow(spanish_survey)}"))
 print(glue("Number of English responses is {nrow(english_survey)}"))
 print(glue("Number of Spanish responses is {nrow(spanish_survey)}"))
 ```
@@ -41,10 +41,11 @@ timestamps <- timestamps %>%
   ungroup()
 theme_set(theme_minimal())
 ggplot(timestamps, aes(x = Timestamp, y = responses, color = language, group = unit)) + 
-  geom_point(alpha = 0.2) +
-  geom_smooth(method = "loess", se=FALSE, color = "blue", alpha=1.0) +
+  geom_point(alpha = 1.0) +
+#  geom_smooth(method = "loess", se=FALSE, color = "blue", alpha=0.1) +
   scale_color_brewer(palette = "Set2") +
-  labs(title = "All R Survey Responses", x = "Date", y = "Total Responses", color = "Language")
+  labs(title = paste0("All R Survey Responses as of ", date()), x = "Date", y = "Total Responses", color = "Language")
+ggsave("plots/survey-progress.pdf")
 ```
 
 ## Response by language
@@ -58,10 +59,11 @@ faceted_timestamps <- faceted_timestamps %>%
   mutate(responses = cumsum(unit))
 theme_set(theme_minimal())
 ggplot(faceted_timestamps, aes(x = Timestamp, y = responses, color = language, group = language)) + 
-  geom_point(alpha = 0.2) +
-  geom_smooth(method = "loess", se=FALSE, alpha = 1.0) +
+  geom_point(alpha = 1.0) +
+#  geom_smooth(method = "loess", se=FALSE, alpha = 1.0) +
   scale_color_brewer(palette = "Set2") +
-  labs(title = "R Survey Responses by Language", x = "Date", y = "Total Responses", color = "Language")
+  labs(title = paste0("R Survey Responses by Language as of ", date()), x = "Date", y = "Total Responses", color = "Language")
+ggsave("plots/survey-progress-by-language.pdf")
 ```
 
 ```{r write_files}
@@ -69,7 +71,7 @@ english_survey_names <- names(english_survey)
 spanish_survey_names <- names(spanish_survey)
 write_tsv(tibble(english_survey_names), "data/2020-english-survey-names.tsv")
 write_tsv(tibble(spanish_survey_names), "data/2020-spanish-survey-names.tsv")
-write_tsv(data.frame(spanish_survey), path=glue("data/2020-spanish-survey-{today()}.tsv"))
+write_tsv(tibble(spanish_survey), path=glue("data/2020-spanish-survey-{today()}.tsv"))
 write_tsv(tibble(english_survey), path=glue("data/2020-english-survey-{today()}.tsv"))
 ```
 

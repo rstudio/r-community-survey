@@ -600,7 +600,7 @@ survey_save <- survey
 
 ```
 
-```{r survey pre-processing, include=FALSE, eval = TRUE}
+```{r survey pre-processing, include=FALSE, eval = FALSE}
 # this section is eval = FALSE because most users will want to use the 
 # processed version of the survey, survey_{language}.tsv in # the data/ directory of the repo.
 # This chunk is used only to create that file.
