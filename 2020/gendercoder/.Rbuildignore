@@ -1,0 +1,6 @@
+^docs$
+^_pkgdown\.yml$
+^README\.Rmd$
+^gendercodeR\.Rproj$
+^\.Rproj\.user$
+^LICENSE.md$

@@ -1,0 +1,53 @@
+question_name	english	spanish
+Qtime	Timestamp	Timestamp
+Qr_experience	How would you rate your level of experience using R?	¿Cómo calificarías tu nivel de experiencia usando R?
+Qhow_to_learn_r	What is your plan for learning R?	¿Cuál es tu plan para aprender R?
+Qreason_to_learn	Which statement most closely reflects the primary reason why you are interested in learning R?	¿Qué opción refleja mejor la razón principal por la que aprendiste R?...4
+Qr_use	If you were to learn R, what would do you think you would use it for? (check all that apply)	Si aprendieras R, ¿para qué consideras que lo usarías? (marca todas las opciones que apliquen)
+Qtools	Which analytical tools do you use today for the functions that you might learn R for? (please check all that apply)	¿Qué herramientas analíticas usas hoy para las funciones para las que podrías aprender R? (por favor, marca todas las opciones que apliquen)
+Qobstacles_to_starting	"What do you think is the biggest obstacle you must overcome in trying to learn R? The choices below are only suggestions; if we haven't listed your obstacle, please choose ""Other"" and add your obstacle in the text."	"¿Cuál crees que es el mayor obstáculo que debes superar para tratar de aprender R? Las siguientes opciones son solo sugerencias. Si no enumeramos tu obstáculo, elige ""Other"" y agrega tu obstáculo como texto libre."
+Qr_year	What year did you first start learning R?	¿En qué año comenzaste a aprender R?
+Qr_learning_path	How did you learn R? If you used multiple methods, please select the one you used the most.	¿Cómo aprendiste R? Si usaste varios métodos, por favor, selecciona el que hayas usado más.
+Qr_reason_experienced	Which statement most closely reflects the primary reason why you learned R?	¿Qué opción refleja mejor la razón principal por la que aprendiste R?...10
+Qmost_difficult_aspect	"What do you think was the biggest obstacle you had to overcome in learning R? The choices below are only suggestions; if we haven't listed your obstacle, please choose ""Other"" and add your obstacle in the text."	"¿Cuál crees que fue el mayor obstáculo que tuviste que superar para aprender R? Las siguientes opciones son solo sugerencias; Si no hemos enumerado su obstáculo, elija ""Otro"" y agregue su obstáculo en el texto."
+Qr_how_often_used	How often do you use R today, either for professional or personal projects?	¿Con qué frecuencia usa R hoy, ya sea para proyectos profesionales o personales?
+Qr_OS	What is the primary operating system that you use for your R work?	¿Cuál es el sistema operativo principal que usa para su trabajo de R?
+Qused_for	What applications do you use R for most? (check all that apply)	¿Para qué aplicaciones usas R más frecuentemente? (marca todas las que correspondan)
+Qr_enjoyment	Please rate how much you enjoy using R on a scale of 1 to 5, where 1 is you don't enjoy it at all, and 5 is that you enjoy it a great deal.	Por favor califica cuanto disfrutas usar R en una escala del 1 al 5, donde 1 es que no lo disfrutas para nada y 5 es que lo disfrutas mucho.
+Qrecommend	How likely are you to recommend R to a colleague, friend, or family member?	¿Qué tan probable es que recomiendes R a un colega, amiga/o o un familiar?
+Qtools_with_r	Which tools do you use with your R applications? (please check all that apply)	¿Qué herramientas utilizas con tus aplicaciones R? (por favor marca todas las que correspondan)
+Qtidyverse_learning	Did you use tidyverse packages such as ggplot2 or dplyr to learn R?	¿Usaste paquetes tidyverse como ggplot2 o dplyr para aprender R?
+Qtidyverse_today	Do you use tidyverse packages when you use R now?	¿Utilizas paquetes tidyverse cuando usa R ahora?
+Qlike_best	What do you like best about using R?	¿Qué es lo que más te gusta de usar R?
+Qlike_least	What do you like least about using R?	¿Qué es lo que menos te gusta de usar R?
+Qr_problems	When you have problems in R, where do you go for help?	Cuando tienes problemas en R, ¿a quién recurres para pedir ayuda?
+Qr_discover_packages	How do you discover new packages or packages that are unfamiliar to you?	¿Cómo descubre nuevos paquetes o paquetes que no le son familiares?
+Qr_share	How do you share the results that you create in R? Check all that apply.	¿Cómo compartes los resultados que creas en R? Marca todos lo que correspondan.
+Qr_change	Looking ahead, how do you expect your use of R to change in 2021?	Mirando hacia el futuro, ¿cómo espera que cambie su uso de R en 2021?
+Qrobot_test	"To help us ensure that you are not a robot, please type the value of fifteen divided by three in the box below. Please type your answer as a word; for example if you want 3 to be your answer, type ""three""."	"Para asegurarnos que no seas un robot, por favor escribe la palabra ""five"", sin comillas, en la siguiente caja."
+Qrmarkdown	Do you currently use R Markdown? Choose the statement that most closely matches your use.	¿Utiliza actualmente R Markdown? Elija la declaración que más se ajuste a su uso.
+Qrmarkdown_apps	What applications do you use R Markdown for? Check all that apply.	¿Para qué aplicaciones utilizas R Markdown? Marque todo lo que corresponda.
+Qrmarkdown_change	Looking forward, how do you expect your use of R Markdown to change in 2021?	Mirando hacia el futuro, ¿cómo esperas que cambie su uso de R Markdown en 2021?
+Qshiny	How often do you currently use Shiny, either as a developer or a user? Choose the statement that most closely matches your use.	¿Con qué frecuencia usas Shiny actualmente, ya sea como desarrollador o como usuario? Elige la opción que más se acerque a tu uso.
+Qshiny_use	What do you use Shiny for? (check all that apply)	¿Para qué usas Shiny?
+Qshiny_change	Looking forward, how do you expect your use of Shiny to change in 2021?	Mirando hacia el futuro, ¿cómo esperas que cambie su uso de Shiny en 2021?
+Qpython_use	Do you currently use Python? Choose the statement that most closely matches your use.	¿Utilizas actualmente Python? Elije la declaración que más se ajuste a tu uso.
+Qpython_apps	What applications do you use Python for most? (check all that apply)	¿Para qué aplicaciones usas Python más frecuentemente? (marca todas las que correspondan)
+Qpython_tools	What tools do you use with your Python applications? (check all that apply)	Por favor califica cuanto disfrutas usar Python en una escala del 1 al 5, donde 1 es que no lo disfrutas para nada y 5 es que lo disfrutas mucho.
+Qpython)_enjoy	Please rate how much you enjoy using Python on a scale of 1 to 5, where 1 is you don't enjoy it at all, and 5 is that you enjoy it a great deal.	¿Qué tan probable es que recomiendes Python a un colega, amiga/o o un familiar?
+Qpython_recommend	How likely are you to recommend Python to a colleague, friend, or family member?	¿Qué herramientas usas con tus aplicaciones Python? (marque todo lo que corresponda)
+Qpython_change	Looking forward, how do you expect your use of Python to change in 2021?	Mirando hacia el futuro, ¿cómo esperas que cambie su uso de Python en 2021?
+Qcoding_languages	What computer languages or tools are you comfortable coding with today?	¿Con qué lenguajes o herramientas informáticas te sientes cómodo programando hoy?
+Qfirst_language	What was the FIRST computer language or tool that you learned?	¿Cuál fue el PRIMER lenguaje de programación o herramienta informática que aprendiste?
+Qyear_born	What year were you born?	¿En qué año naciste?
+Qgender	What gender do you identify with?	¿Con qué género te identificas?
+Qethnicity	I identify my ethnicity as (select all that apply):	Identifico mi origen étnico como (selecciona todas las opciones que correspondan):
+Qdegree	What is the highest degree or level of school you have completed? If currently enrolled, please use the highest degree received.	¿Cuál es el nivel educativo más alto que has completado? Si eres estudiante, utiliza el nivel más alto que ya hayas completado.
+Qcountry	In what country do you currently reside?	¿En qué país resides actualmente?
+Qindustry	What industry do you work or participate in?	¿En qué industria trabajas o participas?
+Qtitle	What is your job title, if any?	¿Cuál es el nombre de tu cargo laboral (si tienes alguno)?
+Qwork_title	Which category best describes the work you do?	¿Qué categoría describe mejor el trabajo que haces?
+Qteam_r_users	How many people in your organization or work group do you feel that you can ask for help or support when working with R?	¿Cuántas personas en su organización o grupo de trabajo siente que puede pedir ayuda o apoyo cuando trabaja con R?
+Qr_community	Do you feel like you are part of the R Community?	¿Te sientes parte de la comunidad R?
+Qevents	Which of the following events have you attended, if any? Check all that apply. Include any events you attended virtually in 2020.	¿A cuál de los siguientes eventos has asistido? Marca todos lo que correspondan. Incluye todos los eventos a los que asististe virtualmente en 2020.
+Qhear	How did you hear about this survey?	¿Cómo te enteraste de esta encuesta?

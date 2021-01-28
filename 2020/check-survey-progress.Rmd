@@ -19,12 +19,15 @@ library(lubridate)
 library(RColorBrewer)
 library(readr)
 
+## Read in the short column names and their English and Spanish equivalents
+
+combined_survey_names <- read_tsv("data/2020-combined-survey-names.tsv")
 googledrive::drive_deauth()
-googledrive::drive_auth()
+googledrive::drive_auth(email="carl@rstudio.com", scopes = "https://www.googleapis.com/auth/drive.readonly")
 english_sheet <- drive_get("2020 English R Community Survey Responses")
-english_survey <- range_read(ss=english_sheet)
+english_survey <- range_read(ss=english_sheet, col_names = combined_survey_names$question_name, col_types="c")
 spanish_sheet <- drive_get("2020 Spanish R Community Survey Responses")
-spanish_survey <- range_read(spanish_sheet)
+spanish_survey <- range_read(spanish_sheet, col_names = combined_survey_names$question_name, col_types = "c")
 print(glue("Total responses are {nrow(english_survey) + nrow(spanish_survey)}"))
 print(glue("Number of English responses is {nrow(english_survey)}"))
 print(glue("Number of Spanish responses is {nrow(spanish_survey)}"))
@@ -71,7 +74,12 @@ english_survey_names <- names(english_survey)
 spanish_survey_names <- names(spanish_survey)
 write_tsv(tibble(english_survey_names), "data/2020-english-survey-names.tsv")
 write_tsv(tibble(spanish_survey_names), "data/2020-spanish-survey-names.tsv")
-write_tsv(tibble(spanish_survey), path=glue("data/2020-spanish-survey-{today()}.tsv"))
-write_tsv(tibble(english_survey), path=glue("data/2020-english-survey-{today()}.tsv"))
+# combined_survey_names <- tibble("english" = english_survey_names, "spanish" = spanish_survey_names)
+combined_survey_names <- read_tsv("data/2020-combined-survey-names.tsv")
+# write_tsv(combined_survey_names, "data/2020-combined-survey-names.tsv")
+names(spanish_survey) <- combined_survey_names$question_name
+names(english_survey) <- combined_survey_names$question_name
+write_tsv(tibble(spanish_survey), file=glue("data/2020-spanish-survey-final.tsv"))
+write_tsv(tibble(english_survey), file=glue("data/2020-english-survey-final.tsv"))
 ```
 

@@ -1,0 +1,100 @@
+---
+title: Using a custom dictionary
+author: "Emily Kothe"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Vignette Title}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+This gendercodeR package allows rapid recoding of freetext gender responses 
+using an in-built dictionary. Individuals using the package may wish to extend 
+or overwrite elements of the dictionary where they disagree with the coding 
+decisions made by the package authors and/or wish to include recoding options 
+that are not included in the in-built dictionary. A custom dictionary can be 
+created by the user and provided to the `genderRecode()` function for this purpose. 
+
+## Adding new items to the dictionary
+
+For example, when collecting data from Spanish speaking participants a 
+participant who enters their gender as "masculino" will not be recoded using 
+the in-built dictionary.
+
+```{r}
+
+df <- data.frame(stringsAsFactors=FALSE,
+      gender = c("male", "MALE", "mle", "mail", "masculino", "female", "enby"),
+         age = c(34L, 37L, 77L, 52L, 68L, 67L, 83L)
+)
+
+df
+
+library(gendercodeR)
+
+genderRecode(df)
+```
+
+The custom dictionary should be a data frame with two columns. Column 1 should 
+include the input text (i.e. the response provided by the participant) and 
+Column 2 should include the desired output text (i.e. the gender category the 
+input should be converted to).
+
+```{r}
+
+custom_dictionary <- data.frame(stringsAsFactors=FALSE,
+       Input = c("masculino", "femenina"),
+      Output = c("male", "female")
+)
+
+custom_dictionary
+```
+
+The custom dictionary is appended to the in-built dictionary and participants 
+are recoded as desired.
+
+```{r}
+genderRecode(df, customDictionary = custom_dictionary)
+```
+
+## Overwriting existing entries in the dictionary
+
+The narrow recoding method recodes participants who indicate that they are 
+intersex are recoded to "Sex and Gender Diverse". In some contexts researchers 
+may wish to use narrow recoding but overwrite this particular behaviour so that 
+individuals who report they are coded as intersex but the other entries in the 
+dictionary are preserved.^[The package authors wish to acknowledge that the 
+narrow categories make opionated assumptions and that the broad recoding will 
+generally be more appropriate.]
+
+```{r}
+
+df <- data.frame(stringsAsFactors=FALSE,
+      gender = c("male", "MALE", "mle", "mail", "intersex", "female", "enby"),
+         age = c(34L, 37L, 77L, 52L, 68L, 67L, 83L)
+)
+
+df
+
+genderRecode(df, method = "narrow")
+```
+
+A custom defintion can be provided and then be applied.
+
+```{r}
+
+custom_dictionary <- data.frame(stringsAsFactors=FALSE,
+       Input = c("intersex"),
+      Output = c("intersex")
+)
+
+genderRecode(df, method = "narrow", customDictionary = custom_dictionary)
+```
