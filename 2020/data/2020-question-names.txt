@@ -33,7 +33,7 @@ Qshiny_change
 Qpython_use
 Qpython_apps
 Qpython_tools
-Qpython)_enjoy
+Qpython_enjoy
 Qpython_recommend
 Qpython_change
 Qcoding_languages
@@ -50,3 +50,5 @@ Qteam_r_users
 Qr_community
 Qevents
 Qhear
+language
+
