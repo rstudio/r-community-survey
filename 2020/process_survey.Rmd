@@ -10,7 +10,7 @@ params:
 
 # Learning R Survey Results
 
-## Methodology
+### Methodology
 
 - Survey was fielded between December 11, 2020 and January 08, 2021.
 - Survey was fielded in both English and Spanish versions
@@ -22,7 +22,7 @@ params:
 - Data and processing scripts can be found the repo at the end of this talk
 - Data and scripts are open source
 
-## Setup
+### Setup
 
 ```{r setup, include=FALSE}
 
@@ -40,9 +40,9 @@ library(ggrepel)
 
 survey_name = "2020 R Community Survey"
 
-###
-### Let's define helper functions before we get going:
-###
+####
+#### Let's define helper functions before we get going:
+####
 
 # This tallies up the results for a question
 # rm.na = TRUE to calculate percentages based on non-NA results; set to FALSE to include NAs
@@ -128,16 +128,16 @@ question_text <-function(question_name_string,
     return(paste0('"', return_text, '" ', respondents_note))
   }
 
-## Plot a pie chart from a single response question. The call form is a little baroque, so here's an example
-## to illustrate the mapping of values to arguments.
-##     pie_chart(df = ethnicities,
-##               column_name                 = Qethnicity_coded,
-##               text_position_expression    = 100 - position  ## the name of the position column in the df
-##               title_string                = "Ethnicities",
-##               subtitle_string             =  question_text("Qethnicity", 50)
-##               fill_legend_title           = "Respondent Ethnicity"
-##               reverse_fill_legend         = FALSE
-##               colors                      = "Set1"         From the RColorBrewer palettes
+### Plot a pie chart from a single response question. The call form is a little baroque, so here's an example
+### to illustrate the mapping of values to arguments.
+###     pie_chart(df = ethnicities,
+###               column_name                 = Qethnicity_coded,
+###               text_position_expression    = 100 - position  ### the name of the position column in the df
+###               title_string                = "Ethnicities",
+###               subtitle_string             =  question_text("Qethnicity", 50)
+###               fill_legend_title           = "Respondent Ethnicity"
+###               reverse_fill_legend         = FALSE
+###               colors                      = "Set1"         From the RColorBrewer palettes
 
 
 pie_chart <- function(df,
@@ -204,8 +204,8 @@ pie_chart <- function(df,
   return(p)
 }
 
-## Plot a simple horizontal bar chart. The call form is a little baroque, so here's an example
-## to illustrate the mapping of values to arguments.
+### Plot a simple horizontal bar chart. The call form is a little baroque, so here's an example
+### to illustrate the mapping of values to arguments.
 # bar_chart(df                     = r_education_results,
 #           column_name            = Output,   # column name, in unquoted dplyr form
 #           fill_color             = params$bar_colors,    # color for bars
@@ -255,9 +255,9 @@ bar_chart <- function(df,
   return(p)
 }
 
-## Plot a simple horizontal bar chart with counts instead of percentages.
-## The call form is a little baroque, so here's an example
-## to illustrate the mapping of values to arguments.
+### Plot a simple horizontal bar chart with counts instead of percentages.
+### The call form is a little baroque, so here's an example
+### to illustrate the mapping of values to arguments.
 # bar_chart_counts(top_25_packages,   # data frame to plot
 #           column_name = capability, # which column has the factor we're plotting; y always = column "n"
 #           fill_color = params$bar_colors,
@@ -326,14 +326,14 @@ chop_and_prop <- function(df, question_name, num_items = 15) {
   return(prop_items)
 }
 
-## Plot a simple lollipop plot. Intended to be used after chop_and_prop
-##     lollipop_chart(df = ethnicities,
-##               column_name            = Qethnicity_coded,
-##               original_column_string = "Qethnicity",
-##               text_position          = position        ## the name of the position column in the df
-##               title_string           = "Ethnicities",
-##               fill_legend_title      = "Respondent Ethnicity"
-##               colors                 = "Set1"         From the RColorBrewer palettes
+### Plot a simple lollipop plot. Intended to be used after chop_and_prop
+###     lollipop_chart(df = ethnicities,
+###               column_name            = Qethnicity_coded,
+###               original_column_string = "Qethnicity",
+###               text_position          = position        ### the name of the position column in the df
+###               title_string           = "Ethnicities",
+###               fill_legend_title      = "Respondent Ethnicity"
+###               colors                 = "Set1"         From the RColorBrewer palettes
 
 lollipop_chart <- function(df,
                            column_name,
@@ -381,14 +381,14 @@ lollipop_chart <- function(df,
   #return(p)
 }
 
-## Plot a simple lollipop plot. Intended to be used after chop_and_prop
-##     lollipop_chart(df = ethnicities,
-##               column_name            = Qethnicity_coded,
-##               original_column_string = "Qethnicity",
-##               text_position          = position        ## the name of the position column in the df
-##               title_string           = "Ethnicities",
-##               fill_legend_title      = "Respondent Ethnicity"
-##               colors                 = "Set1"         From the RColorBrewer palettes
+### Plot a simple lollipop plot. Intended to be used after chop_and_prop
+###     lollipop_chart(df = ethnicities,
+###               column_name            = Qethnicity_coded,
+###               original_column_string = "Qethnicity",
+###               text_position          = position        ### the name of the position column in the df
+###               title_string           = "Ethnicities",
+###               fill_legend_title      = "Respondent Ethnicity"
+###               colors                 = "Set1"         From the RColorBrewer palettes
 
 lollipop_chart_100pc <- function(df,
                            column_name,
@@ -436,15 +436,15 @@ lollipop_chart_100pc <- function(df,
 }
 
 
-## Plot a simple lollipop plot the plots counts instead of percentages.
-## We assume the counts are in the variable named "n"
-##     lollipop_chart_counts(df = ethnicities,
-##               column_name            = Qethnicity_coded,
-##               original_column_string = "Qethnicity",
-##               text_position          = position        ## the name of the position column in the df
-##               title_string           = "Ethnicities",
-##               fill_legend_title      = "Respondent Ethnicity"
-##               colors                 = "Set1"         From the RColorBrewer palettes
+### Plot a simple lollipop plot the plots counts instead of percentages.
+### We assume the counts are in the variable named "n"
+###     lollipop_chart_counts(df = ethnicities,
+###               column_name            = Qethnicity_coded,
+###               original_column_string = "Qethnicity",
+###               text_position          = position        ### the name of the position column in the df
+###               title_string           = "Ethnicities",
+###               fill_legend_title      = "Respondent Ethnicity"
+###               colors                 = "Set1"         From the RColorBrewer palettes
 
 lollipop_chart_counts <- function(df,
                                   column_name,
@@ -657,9 +657,9 @@ survey <- survey %>%
                                    Qethnicity_coded))
 collected_ethnicities <- survey %>% group_by(Qethnicity_coded) %>% count(sort = TRUE)
 
-## Let's save the survey data at this point with the question names, 
-## augmented gender and ethnicity coding
-## so that others don't have to go through this hassle.
+### Let's save the survey data at this point with the question names, 
+### augmented gender and ethnicity coding
+### so that others don't have to go through this hassle.
 survey$number_responses <- nrow(survey)
 write_delim(survey, here::here("data/", paste0("survey_", params$language,".tsv")), delim="\t")
 theme_set(theme_classic())
@@ -668,7 +668,7 @@ theme_set(theme_classic())
 
 
 
-## Responses over time
+### Responses over time
 
 ```{r responses over time, include = FALSE}
 theme_set(theme_classic())
@@ -683,7 +683,7 @@ print(p)
 
 # Demographics
 
-## Respondent Ages  (All Respondents)
+### Respondent Ages  (All Respondents)
 
 ```{r Respondent Ages}
 mean_age <- mean(2021 - survey$Qyear_born, na.rm = TRUE)
@@ -699,7 +699,7 @@ ggplot(survey) +
 plot_save("Respondent Ages (All Respondents).pdf", height = 3)
 ```
 
-## Respondent Gender  (All Respondents)
+### Respondent Gender  (All Respondents)
 
 This plot is currently disabled
 
@@ -740,7 +740,7 @@ plot_save("Respondent Identified Genders (All Respondents).pdf", height = 2)
 ```
 
 
-## Respondent Countries  (All Respondents)
+### Respondent Countries  (All Respondents)
 
 ```{r Respondent Countries}
 countries <- survey %>% count(Qcountry, sort=TRUE) %>% drop_na()
@@ -783,7 +783,7 @@ ggplot(data = plot_countries, aes(long, lat, group=group)) +
   plot_save("Respondent Countries (All Respondents).pdf")
 ```
 
-## Industry  (All Respondents)
+### Industry  (All Respondents)
 
 ```{r Respondent industry}
 r_industry_dictionary <- read_delim("dictionary/industry_dictionary.tsv", delim = "\t", col_types = "cc")
@@ -817,7 +817,7 @@ lollipop_chart(df          = top_10_industries,
 plot_save("Respondent Industries (All Respondents).pdf", height = 3)
 ```
 
-## Ethnicity  (All Respondents)
+### Ethnicity  (All Respondents)
 
 
 This plot is currently disabled
@@ -843,7 +843,7 @@ ethnicities <- ethnicities %>%
         x_position = cumsum(unit) %% 3 * 0.06 + (1 - 0.06),
         label = ifelse(percent >= 2, paste0(Qethnicity_coded, "\n", round(percent), "%"), ""))
 
-## Another customized pie chart here to use repelled labels to show small minority groups
+### Another customized pie chart here to use repelled labels to show small minority groups
 
 lollipop_chart(ethnicities,
                Qethnicity_coded,
@@ -854,7 +854,7 @@ plot_save("Respondent Ethnicities (All Respondents).pdf", height = 2.5)
   
 ```
 
-## Education Level  (All Respondents)
+### Education Level  (All Respondents)
 
 ```{r Education level}
 
@@ -882,7 +882,7 @@ lollipop_chart(df                     = r_education_results,
 plot_save("Respondent Education (All Respondents).pdf")
 ```
 
-## Job Title  (All Respondents)
+### Job Title  (All Respondents)
 
 ```{r Job title}
 job_title_dictionary <- read_delim("dictionary/work-title-dictionary.tsv", delim = "\t", col_types = "cc")
@@ -912,7 +912,7 @@ lollipop_chart (df = top_10_titles,
 plot_save("Respondent Job Titles (All Respondents).pdf")
 ```
 
-## Computer Languages or Tools You Are Comfortable With
+### Computer Languages or Tools You Are Comfortable With
 
 ```{r Tools Used Prior To Learning R}
 
@@ -934,7 +934,7 @@ lollipop_chart(top_10_items,
 plot_save("What Languages Do You Use Besides R (All Respondents).pdf")
 ```
 
-## First Language Learned (All Respondents)
+### First Language Learned (All Respondents)
 
 ```{r First Language or Tool Learned}
 
@@ -971,7 +971,7 @@ plot_save("What Language Did You FIRST Learn (All Respondents).pdf")
 
 ```
 
-## Age When Respondents Learned R (All Respondents)
+### Age When Respondents Learned R (All Respondents)
 
 ```{r Age when respondents learned R}
 
@@ -992,7 +992,7 @@ ggplot(r_ages) +
 plot_save("Ages When Respondents Learned R.pdf", height = 3)
 ```
 
-## Number of People You Work With That Know R By Learner Type
+### Number of People You Work With That Know R By Learner Type
 
 This plot is currently disabled
 
@@ -1025,7 +1025,7 @@ plot_save("R Team Size Distribution by Learner Type.pdf")
 ```
 
 
-## Respondent Ages By Learner Type
+### Respondent Ages By Learner Type
 
 This plot is currently disabled
 
@@ -1052,7 +1052,7 @@ ggplot(ages, aes(x = learner_type, y = age, group = learner_type)) +
   plot_save("Respondent Age By Learner Type.pdf")
 ```
 
-## Year Respondents Learned R (All Respondents)
+### Year Respondents Learned R (All Respondents)
 
 ```{r Year respondents learned R}
 
@@ -1077,7 +1077,7 @@ ggplot(r_years) +
 # Learning Questions
 
 
-## Reason Why Learned R (R Users Only)
+### Reason Why Learned R (R Users Only)
 
 ```{r Why Learned R}
 
@@ -1109,7 +1109,7 @@ plot_save("Reason To Learn R (R Users Only).pdf")
 
 ```
 
-## How Did You Learn R  (R Users Only)
+### How Did You Learn R  (R Users Only)
 
 ```{r How Did You Learn R}
 # We shorten down the given answers while categorizing open-text answers given for "Other"
@@ -1140,9 +1140,10 @@ lollipop_chart(df                 = r_path_results,
 plot_save("R Learning Path  (R Users Only).pdf", height = 3)
 
 ```
-# R Use
 
-## Frequency of R Use (R Users Only)
+# R Usage
+
+### Frequency of R Use (R Users Only)
 
 ```{r Frequency of R Use}
 
@@ -1173,7 +1174,7 @@ plot_save("Frequency of R Use (R Users Only).pdf")
 ```
 
 
-## What Tools Do You Use With R?  (R Users Only)
+### What Tools Do You Use With R?  (R Users Only)
 
 ```{r R Tools Used}
 
@@ -1195,7 +1196,7 @@ lollipop_chart(top_15_items,
 plot_save("What Tools Do You Use With R (R Users Only).pdf")
 ```
 
-## What is Your Experience with R? (All Respondents)
+### What is Your Experience with R? (All Respondents)
 
 ```{r R Experience so far}
 r_experience_dictionary <- read_delim("dictionary/r_experience_dictionary.tsv", delim = "\t", col_types = "cc")
@@ -1229,7 +1230,7 @@ plot_save("R Experience (All Respondents).pdf", height = 2)
 
 ```
 
-## What Do You Use R For?  (R Users Only)
+### What Do You Use R For?  (R Users Only)
 
 ```{r R Used For}
 r_use_dictionary <- read_delim("dictionary/use_dictionary.tsv", delim = "\t", col_types = "cc")
@@ -1275,7 +1276,7 @@ plot_save("What Do You Use R For.jpg")
 
 ```
 
-## R Enjoyment (R Users Only)
+### R Enjoyment (R Users Only)
 
 ```{r R Enjoyment}
 
@@ -1308,7 +1309,7 @@ ggplot(r_enjoyment) +
 plot_save("Enjoyment Using R (R Users Only).pdf")
 ```
 
-## Net Promoter Score for R
+### Net Promoter Score for R
 
 ```{r R Net Promoter Score}
 
@@ -1336,17 +1337,18 @@ ggplot(recommend_scores) +
 
 plot_save("Net Promoter Score for R.pdf")
 ```
-# Python
 
-## Frequency of Python Use
+# Python Usage
+
+### Frequency of Python Use
 
 ```{r Frequency of Python Use}
 
-## Need a python use dictionary. Here's how we derive that:
+### Need a python use dictionary. Here's how we derive that:
 # python_use_responses <- survey %>% 
 #   count(Qpython_use, sort=TRUE)
 # write_tsv(python_use_responses, "dictionary/python_use_dictionary")
-## And then we hand edit the mapping.
+### And then we hand edit the mapping.
 
 use_dictionary <- read_delim("dictionary/python_use_dictionary", delim = "\t", col_types = "cc")
 
@@ -1373,7 +1375,7 @@ plot_save("Frequency of Python Use.pdf")
 
 ```
 
-## What Tools Do You Use With Python?  (Python Users Only)
+### What Tools Do You Use With Python?
 
 ```{r Python Tools Used}
 
@@ -1390,12 +1392,12 @@ top_15_items <- top_15_items %>%
 lollipop_chart(top_15_items, 
           column_name = items, 
           fill_color = params$bar_colors, 
-          subtitle_string = question_text("Qpython_tools", "(R users only)", 60),
+          subtitle_string = question_text("Qpython_tools", "(Python users only)", 60),
           caption_string = paste0(survey_name, ", n = ", num_tool_responses))
 plot_save("What Tools Do You Use With Python (Python Users Only).pdf")
 ```
 
-## What Do You Use Python For? (Python users)
+### What Do You Use Python For?
 
 ```{r Python Used For}
 python_use_dictionary <- read_delim("dictionary/use_dictionary.tsv", delim = "\t", col_types = "cc")
@@ -1443,7 +1445,7 @@ plot_save("What Do You Use Python For.jpg")
 ```
 
 
-## Python Enjoyment (Python Users Only)
+### Python Enjoyment
 
 ```{r Python Enjoyment}
 
@@ -1476,7 +1478,7 @@ ggplot(r_enjoyment) +
 plot_save("Enjoyment Using Python (Python Users Only).pdf")
 ```
 
-## Net Promoter Score for Python
+### Net Promoter Score for Python
 
 ```{r Python Net Promoter Score}
 
@@ -1504,9 +1506,10 @@ ggplot(recommend_scores) +
 
 plot_save("Net Promoter Score for Python.pdf")
 ```
+
 # Tools
 
-## Tidyverse Learning
+### Tidyverse Learning
 
 ```{r tidyverse Learning}
 tidyverse_learned_dictionary <- read_delim("dictionary/tidyverse_learned_dictionary.tsv", delim = "\t", col_types = "cc")
@@ -1531,7 +1534,7 @@ lollipop_chart(df                 = learned_with_tidyverse,
 plot_save("Tidyverse Learning (R Users Only).pdf", height = 2)
 ```
 
-## Tidyverse Use (R Users Only)
+### Tidyverse Use (R Users Only)
 
 ```{r tidyverse}
 tidyverse_use_dictionary <- read_delim("dictionary/tidyverse_use_dictionary.tsv", delim = "\t", col_types = "cc")
@@ -1556,7 +1559,9 @@ lollipop_chart(df                 = using_tidyverse,
 plot_save("Tidyverse Use Frequency Today (R Users Only).pdf", 3)
 ```
 
-## Shiny Use (R Users Only)
+### Shiny Use (R Users Only)
+
+This plot is currently broken because the translation dictionary hasn't been updated
 
 ```{r shiny}
 shiny_use_dictionary <- read_delim("dictionary/shiny_use_dictionary.tsv", delim = "\t", col_types = "cc")
@@ -1581,7 +1586,7 @@ lollipop_chart(df                 = using_shiny,
 plot_save("Shiny Use Frequency Today (R Users Only).pdf")
 ```
 
-## Things Users Like Best About R (R Users Only)
+### Things Users Like Best About R (R Users Only)
 
 
 This plot is currently disabled
@@ -1630,7 +1635,7 @@ lollipop_chart_counts(top_15_likebest,
 plot_save("R Capabilities Users Like Best (R Users Only).pdf")
 ```
 
-## Things Users Like least About R (R Users Only)
+### Things Users Like least About R (R Users Only)
 
 
 This plot is currently disabled
@@ -1686,7 +1691,7 @@ plot_save("R Capabilities Users Like Least (R Users Only).pdf")
 
 # Non-R Users Section
 
-## Most Difficult Aspect of Learning (Non-R Users)
+### Most Difficult Aspect of Learning (Non-R Users)
 
 ```{r Most Difficult Aspect of Learning}
 
@@ -1714,7 +1719,7 @@ plot_save("Most Difficult Aspect of Learning (Non-R Users).pdf")
 
 ```
 
-## Tidyverse Use versus R Year  (R Users Only)
+### Tidyverse Use versus R Year  (R Users Only)
 
 ```{r Tidyverse Use versus R Year}
 

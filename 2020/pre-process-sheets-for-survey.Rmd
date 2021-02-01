@@ -142,7 +142,7 @@ spanish_column_formats <- cols(
 
 
 googledrive::drive_deauth()
-googledrive::drive_auth(email="carl@rstudio.com", scopes = "https://www.googleapis.com/auth/drive.readonly")
+googledrive::drive_auth()
 combined_survey_names <- read_tsv("data/2020-combined-survey-names3.tsv")
 
 english_sheet <- drive_get("2020 English R Community Survey Responses")
