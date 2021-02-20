@@ -574,7 +574,7 @@ column_formats = cols(
 
 # get the data
 english_column_names <-
-  read_tsv(here::here("data/survey-questions-2019-en.tsv"))
+  read_csv(here::here("data/survey-questions-2019-en.csv"))
 english_survey <-
   read_csv(file = here::here("data/2019 English R Community Survey Responses.csv"),
            col_types = column_formats, col_names = english_column_names$Question_name, skip = 1)
@@ -1295,6 +1295,46 @@ plot_save("What Do You Use R For.jpg")
 
 ```
 
+### Frequency of Python Use
+
+```{r Frequency of Python Use}
+
+### Need a python use dictionary. Here's how we derive that:
+# python_use_responses <- survey %>% 
+#   count(Qpython_use, sort=TRUE)
+# write_tsv(python_use_responses, "dictionary/python_use_dictionary")
+### And then we hand edit the mapping.
+
+use_dictionary <- read_delim("dictionary/python_use_dictionary", delim = "\t", col_types = "cc")
+
+python_use_responses <- survey %>% select(Qpython_use)
+python_use_parsed <- python_use_responses %>% 
+   left_join(use_dictionary, c("Qpython_use" = "Input"))
+python_use_exceptions <- python_use_responses %>% 
+  anti_join(use_dictionary, c("Qpython_use" = "Input"))
+python_use_results <- tally_question(python_use_parsed, Output, rm.na = TRUE, sort = TRUE)
+python_use_responses <- first(python_use_results$nn)
+
+python_use_results <- python_use_results %>% 
+ mutate(Output = factor(Output, levels = rev(Output)),
+         position = cumsum(percent) - percent / 2,
+         label = ifelse(percent >= 2, paste0(Output, "\n", round(percent), "%"), ""))
+
+lollipop_chart(df                 = python_use_results,
+          column_name        = Output,
+          subtitle_string        = question_text("Qpython_use", ""),
+          caption_string         = paste0(survey_name, ", n = ", python_use_responses),
+          fill_color             = params$bar_colors)
+plot_save("Frequency of Python Use.pdf")
+plot_save("Frequency of Python Use.png")
+
+
+
+```
+
+
+
+
 ## What is Python Used For?
 
 ```{r Python Used For, echo = TRUE}
@@ -1371,6 +1411,38 @@ ggplot(recommend_scores) +
 plot_save("Net Promoter Score.pdf")
 ```
 
+### Net Promoter Score for Python
+
+```{r Python Net Promoter Score}
+
+recommend_totals <-survey %>% group_by(Qpython_recommend) %>% tally()
+responses <- sum(!is.na(survey$Qpython_recommend))
+recommend_totals <- recommend_totals %>% mutate(percent = n / responses * 100)
+recommend_scores <- tibble(Qpython_recommend = 1:10) %>% left_join(recommend_totals, by = "Qpython_recommend")
+nps <- round(sum(recommend_scores$percent[9:10], na.rm=TRUE) - 
+               sum(recommend_scores$percent[1:6], na.rm=TRUE))  # Standard NPS formula (see Wikipedia)
+npr <- nps %>% cut(breaks = c(-100, 0, 50, 75, 100), labels = c("Dangerous", "Good", "Excellent", "World Class"))
+
+ggplot(recommend_scores) +
+  geom_col(aes(x = Qpython_recommend, y = percent), fill = params$bar_colors) +
+  geom_text(aes(x = Qpython_recommend, y = percent, label = paste0(round(percent), "%")), 
+            color="black", size=3, nudge_y = 3) +
+  scale_x_continuous(breaks = 1:10) +
+    labs(title = question_text("Qpython_recommend", "(Python users only)", 35),
+       subtitle = sprintf("Net Promoter Score = %s,        Rating: %s", nps, npr),
+       caption = paste0(survey_name, " (R Users Only), n = ", responses),
+       x="Score", y="") +
+  theme(panel.background = element_rect(fill = "transparent",colour = NA),
+        plot.background = element_rect(fill = "transparent",colour = NA),
+        axis.text.y = element_blank(),
+        axis.ticks.y = element_blank())
+
+plot_save("Net Promoter Score for Python.pdf")
+plot_save("Net Promoter Score for Python.png")
+
+```
+
+
 # Tools
 
 ## What Tools Do You Use With R?  (R Users Only)
@@ -1393,6 +1465,8 @@ lollipop_chart(top_15_items,
           subtitle_string = question_text("Qtools_with_r", "(R users only)", 60),
           caption_string = paste0(survey_name, ", n = ", num_tool_responses))
 plot_save("What Tools Do You Use With R (R Users Only).pdf")
+plot_save("What Tools Do You Use With R (R Users Only).png")
+
 ```
 
 
@@ -1853,6 +1927,7 @@ lollipop_chart(df                 = r_learning_plan,
 
 
 ```
+
 ## Tidyverse Use versus R Year  (R Users Only)
 
 ```{r Tidyverse Use versus R Year, echo = TRUE}
@@ -1893,3 +1968,6 @@ ggplot(r_ages) +
         plot.background = element_rect(fill = "transparent",colour = NA))
 plot_save("Ages When Respondents Learned R.pdf", height = 3)
 ```
+
+
+

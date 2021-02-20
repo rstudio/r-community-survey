@@ -67,6 +67,32 @@ tally_question <-
     return(results_df)
 }
 
+# This tallies up the results for a question
+# rm.na = TRUE to calculate percentages based on non-NA results; set to FALSE to include NAs
+# set sort = TRUE sorts the result by count; set to FALSE to return in whatever order they occur
+
+tally_question_by_question <-
+  function(df,
+           question_name,
+           by_question_name,     # column name to group by
+           rm.na = TRUE,
+           sort = TRUE) {
+    quoted_question <- enquo(question_name)
+    quoted_by_question <- enquo(by_question_name)
+    filtered_df <- df
+    if (rm.na) {
+      filtered_df <- filtered_df %>% 
+        filter(!is.na(!!quoted_question))
+    }
+    results_df <- filtered_df %>%
+      count(!!quoted_question, sort = sort) %>%
+      add_tally(n, name = "nn") %>%
+      mutate(percent = round(n / nn * 100, 1),
+             prop_responses = n / nn)
+    return(results_df)
+}
+
+
 # Split and aggregate: derives multiple answers to a single question by separating on commas and returning
 # the results as an embedded list in the dataframe.
 split_and_aggregate <- function(df, question_name) {
@@ -254,6 +280,55 @@ bar_chart <- function(df,
   plot_save(paste0(title_string, ".pdf"))
   return(p)
 }
+
+## This version does a bar chart faceted by another variable
+
+bar_chart_faceted <- function(df,
+                      column_name,
+                      facet_name,
+                      fill_color,
+                      title_string = "",
+                      subtitle_string = "",
+                      caption_string = survey_name) {
+  quoted_column <- enquo(column_name)
+  facet_column <- enquo(facet_name)
+  nudge_amount <- max(df$percent, rm.na = TRUE) * 0.05
+  p <- ggplot(df) +
+    geom_col(aes(x = !!quoted_column, y = percent),
+             fill =  fill_color) +
+    geom_text(
+      aes(
+        x = !!quoted_column,
+        y = percent ,
+        label = paste0(round(percent), "%")
+      ),
+      color = "gray30",
+      size = 3,
+      nudge_y = nudge_amount
+    ) +
+    labs(
+      subtitle = subtitle_string,
+      caption = caption_string,
+      x = "",
+      y = ""
+    ) +
+    coord_flip() +
+    theme(
+      axis.line = element_blank(),
+      axis.text.x = element_blank(),
+      axis.ticks = element_blank(),
+      panel.grid.major = element_blank(),
+      panel.grid.minor = element_blank(),
+      panel.background = element_rect(fill = "transparent", colour = NA),
+      plot.background = element_rect(fill = "transparent", colour = NA)
+    ) +
+    facet_wrap(~ !!facet_name)
+  print(p)
+  plot_save(paste0(title_string, ".pdf"))
+  return(p)
+}
+
+
 
 ### Plot a simple horizontal bar chart with counts instead of percentages.
 ### The call form is a little baroque, so here's an example
@@ -624,7 +699,7 @@ survey <- genderRecode(survey, method = "narrow",
                        customDictionary = gender_dictionary)
 survey <- survey %>% mutate(Qgender_coded = ifelse(Qgender_coded == "", NA, Qgender_coded))
 uncoded_genders <- survey %>% group_by(Qgender_coded) %>% count(sort = TRUE)
-write_csv(uncoded_genders, "data/uncoded_genders_language.csv")  # For detecting open ends we should code
+write_csv(uncoded_genders, "dictionary/uncoded_genders_language.csv")  # For detecting open ends we should code
 
 # This codes the ethnicity question for further analysis
 # We recognize that this is both an offensive question to some and an imperfect classification
@@ -689,11 +764,11 @@ print(p)
 mean_age <- mean(2021 - survey$Qyear_born, na.rm = TRUE)
 
 ggplot(survey) +
-  geom_histogram(aes(2018 - Qyear_born), binwidth = 1,  fill = params$bar_colors, color="white") +
+  geom_histogram(aes(2021 - Qyear_born), binwidth = 1,  fill = params$bar_colors, color = "white") +
   geom_vline(aes(xintercept = mean_age), color = "lightblue") +
   annotate("text", x = 41, y = 150, label = paste0("Mean age = ", round(mean_age, 0))) +
   scale_x_continuous(breaks = seq(15,80,5), limits = c(15, 80)) +
-  labs(subtitle = "Respondent Ages (Respondent counts shown, All respondents)", x="Age", y="Count") +
+  labs(subtitle = "Respondent Ages (Respondent counts shown, All respondents)", x = "Age", y = "Count") +
   theme(panel.background = element_rect(fill = "transparent",colour = NA),
         plot.background = element_rect(fill = "transparent",colour = NA))
 plot_save("Respondent Ages (All Respondents).pdf", height = 3)
@@ -743,7 +818,7 @@ plot_save("Respondent Identified Genders (All Respondents).pdf", height = 2)
 ### Respondent Countries  (All Respondents)
 
 ```{r Respondent Countries}
-countries <- survey %>% count(Qcountry, sort=TRUE) %>% drop_na()
+countries <- survey %>% count(Qcountry, sort = TRUE) %>% drop_na()
 names(countries) <- c("region", "value")
 countries <- countries %>% mutate(region = tolower(region))
 unknown_countries <- c("singapore", "korea", "south", "serbia and montenegro", "hong kong", "andorra", "bahrain", "christmas island", "macau", "mauritius", "puerto rico", "tanzania")
@@ -753,18 +828,18 @@ choro_countries <- choro_countries %>% mutate(region = str_replace_all(region, "
 # country_choropleth(choro_countries, title = "", legend = "", num_colors = 8,
 #  zoom = NULL)
 
-country_map_countries <- country.map %>% count(region, sort=TRUE) %>% arrange(region)
-cc_countries <- choro_countries %>% count(region, sort=TRUE) %>% arrange(region)
+country_map_countries <- country.map %>% count(region, sort = TRUE) %>% arrange(region)
+cc_countries <- choro_countries %>% count(region, sort = TRUE) %>% arrange(region)
 combined <- country_map_countries %>% left_join(cc_countries, by = "region")
 exceptions <- country_map_countries %>% anti_join(cc_countries, by = "region")
 
 plot_countries <- country.map %>% left_join(choro_countries, by = "region")
 pc <- plot_countries %>% select(region, value, continent)
 
-clist <- choro_countries %>% count(region, sort=TRUE)
+clist <- choro_countries %>% count(region, sort = TRUE)
 
-ggplot(data = plot_countries, aes(long, lat, group=group)) + 
-  geom_polygon(aes(fill = value), color = "gray", size=0.1) +
+ggplot(data = plot_countries, aes(long, lat, group = group)) + 
+  geom_polygon(aes(fill = value), color = "gray", size = 0.1) +
   scale_fill_gradient(trans = "log10",  na.value = "gray80", low = "dark blue", high = "yellow") +
   coord_fixed(1.3) +
   scale_x_continuous(breaks = seq(-150, 150, 60)) +
@@ -795,7 +870,12 @@ r_industry_exceptions <- survey %>% select(Qindustry) %>%
   anti_join(r_industry_dictionary, c("Qindustry" = "Input"))
 r_industry_results <- tally_question(r_industry, Output, rm.na = TRUE, sort = TRUE)
 r_industry_responses <- first(r_industry_results$nn)
-r_industry_results <- r_industry_results %>% select(- nn)
+r_industry_results <- r_industry_results %>% select(-nn)
+
+r_industry_exception_list <- r_industry_exceptions %>% 
+  count(Qindustry, sort = TRUE) %>% 
+  select(Qindustry, n)
+write.csv(r_industry_exception_list, "dictionary/uncoded_industry_names.csv")
 
 # industry <- survey %>% count(Qindustry, sort = TRUE)
 # industry_responses <- sum(!is.na(survey$Qindustry))
@@ -1194,6 +1274,7 @@ lollipop_chart(top_15_items,
           subtitle_string = question_text("Qtools_with_r", "(R users only)", 60),
           caption_string = paste0(survey_name, ", n = ", num_tool_responses))
 plot_save("What Tools Do You Use With R (R Users Only).pdf")
+plot_save("What Tools Do You Use With R (R Users Only).png")
 ```
 
 ### What is Your Experience with R? (All Respondents)
@@ -1371,6 +1452,7 @@ lollipop_chart(df                 = python_use_results,
           caption_string         = paste0(survey_name, ", n = ", python_use_responses),
           fill_color             = params$bar_colors)
 plot_save("Frequency of Python Use.pdf")
+plot_save("Frequency of Python Use.png")
 
 
 ```
@@ -1385,7 +1467,7 @@ tools_used <- split_and_aggregate(uses, tools)
 tools_used <- tools_used %>% 
   select(-num_responses) %>% 
   mutate(percent = round(n / num_tool_responses * 100))
-top_15_items <- top_n_choices(tools_used, items, num_tool_responses, 15) %>% arrange(percent)
+top_15_items <- top_n_choices(tools_used, items, num_tool_responses, 20) %>% arrange(percent)
 top_15_items <- top_15_items %>%
   mutate(items = factor(as.character(items), levels = items))
 
@@ -1395,6 +1477,8 @@ lollipop_chart(top_15_items,
           subtitle_string = question_text("Qpython_tools", "(Python users only)", 60),
           caption_string = paste0(survey_name, ", n = ", num_tool_responses))
 plot_save("What Tools Do You Use With Python (Python Users Only).pdf")
+plot_save("What Tools Do You Use With Python (Python Users Only).png")
+
 ```
 
 ### What Do You Use Python For?
@@ -1505,6 +1589,7 @@ ggplot(recommend_scores) +
         axis.ticks.y = element_blank())
 
 plot_save("Net Promoter Score for Python.pdf")
+plot_save("Net Promoter Score for Python.png")
 ```
 
 # Tools
@@ -1635,7 +1720,7 @@ lollipop_chart_counts(top_15_likebest,
 plot_save("R Capabilities Users Like Best (R Users Only).pdf")
 ```
 
-### Things Users Like least About R (R Users Only)
+### Things Users Like Least About R (R Users Only)
 
 
 This plot is currently disabled
@@ -1689,7 +1774,7 @@ lollipop_chart_counts(top_15_likeleast,
 plot_save("R Capabilities Users Like Least (R Users Only).pdf")
 ```
 
-# Non-R Users Section
+# Miscellaneous
 
 ### Most Difficult Aspect of Learning (Non-R Users)
 
@@ -1738,3 +1823,129 @@ ggplot(td_use_by_year, aes(x = Qr_year, y = percent)) +
          labs(x = "Year Learned R",
                 y = "Percent Who Usually Use Tidyverse")
 ```
+
+### Community
+
+```{r Community_all}
+
+community_sense <- survey %>% 
+  count(Qr_community) %>% 
+  rename("Input" = Qr_community, "Output" = n)
+# write_tsv(community_sense, here::here("dictionary/community-dictionary.tsv"))
+
+community_dictionary <- read_tsv("dictionary/community-dictionary.tsv", col_types = "cc")
+community <- survey %>% 
+  select(Qr_community) %>% 
+  drop_na() %>% 
+  left_join(community_dictionary, c("Qr_community" = "Input"))
+community_exceptions <- survey %>% 
+  select(Qr_community) %>% 
+  drop_na() %>% 
+  anti_join(community_dictionary, c("Qr_community" = "Input"))
+
+community_results <- tally_question(community, Output, sort = FALSE) %>% 
+  mutate(Value = ifelse(Output == "I'm not sure",
+                        "Not Sure", 
+                        str_extract(Output, "^.")))
+mylevels <- levels(factor(community_dictionary$Output))
+
+responses <- first(community_results$nn)
+community_values <- community %>% 
+  mutate(community_score = str_extract(Output, "^.")) %>%
+  mutate(community_score_value = as.numeric(community_score))
+
+mean_community = round(mean(community_values$community_score_value, na.rm = TRUE), 1)
+
+community_results <- community_results %>%
+  mutate(percent = percent / 100)      # the plot below uses a percent y axis
+
+ggplot(community_results) +
+  geom_bar(aes(x = Value, y = percent),
+           stat = "identity",
+           color = params$bar_colors,
+           fill = params$bar_colors,
+           width = 0.5,
+           alpha = 0.5) +
+  geom_text(aes(x = Value, y = percent,
+                label = paste0(round(percent * 100), "%")),
+                color = "gray30",
+                nudge_y = .03) +
+  geom_vline(aes(xintercept = mean_community), color = "darkblue") +
+  annotate("text", x = 4, y = 0.5, label = paste0("Mean value = ", mean_community)) +
+  scale_y_continuous(labels = scales::label_percent(accuracy = 1)) +
+  labs(subtitle = question_text("Qr_community", "", 75),
+       caption = paste0(survey_name, ", n = ", diff_responses),
+       x = "Respondent Rating (1 = No, not at all, 5 = Yes, definitely)", y = "") +
+  theme(panel.background = element_rect(fill = "transparent",colour = NA),
+        plot.background = element_rect(fill = "transparent",colour = NA))
+plot_save("R Community Membership (All Respondents).pdf")
+
+```
+
+### Community By Gender
+
+```{r Community_by_gender}
+
+community_sense <- survey %>% 
+  count(Qr_community) %>% 
+  rename("Input" = Qr_community, "Output" = n)
+# write_tsv(community_sense, here::here("dictionary/community-dictionary.tsv"))
+
+community_dictionary <- read_tsv("dictionary/community-dictionary.tsv", col_types = "cc")
+community <- survey %>% 
+  select(Qr_community, Qgender_coded) %>% 
+  drop_na() %>% 
+  left_join(community_dictionary, c("Qr_community" = "Input"))
+community_exceptions <- survey %>% 
+  select(Qr_community) %>% 
+  drop_na() %>% 
+  anti_join(community_dictionary, c("Qr_community" = "Input"))
+
+community_values <- community %>% 
+  mutate(community_score = str_extract(Output, "^.")) %>%
+  mutate(community_score_value = as.numeric(community_score))
+
+
+mylevels <- levels(factor(community_dictionary$Output))
+
+faceted_results <- community %>% 
+  count(Output, Qgender_coded)
+
+totals <- group_by(Qgender_coded) %>% summarize(nn = sum(n), .groups = "drop_last")
+
+
+  add_tally(n, name = "nn") %>%
+  mutate(percent = round(n / nn * 100, 1),
+         prop_responses = n / nn)
+
+responses <- first(community_results$nn)
+
+mean_community = round(mean(community_values$community_score_value, na.rm = TRUE), 1)
+
+community_results <- community_results %>%
+  mutate(percent = percent / 100)      # the plot below uses a percent y axis
+
+ggplot(community_results) +
+  geom_bar(aes(x = Value, y = percent),
+           stat = "identity",
+           color = params$bar_colors,
+           fill = params$bar_colors,
+           width = 0.5,
+           alpha = 0.5) +
+  geom_text(aes(x = Value, y = percent,
+                label = paste0(round(percent * 100), "%")),
+                color = "gray30",
+                nudge_y = .03) +
+  geom_vline(aes(xintercept = mean_community), color = "darkblue") +
+  annotate("text", x = 4, y = 0.5, label = paste0("Mean value = ", mean_community)) +
+  scale_y_continuous(labels = scales::label_percent(accuracy = 1)) +
+  labs(subtitle = question_text("Qr_community", "", 75),
+       caption = paste0(survey_name, ", n = ", diff_responses),
+       x = "Respondent Rating (1 = No, not at all, 5 = Yes, definitely)", y = "") +
+  theme(panel.background = element_rect(fill = "transparent",colour = NA),
+        plot.background = element_rect(fill = "transparent",colour = NA))
+plot_save("R Community Membership By Gender.pdf")
+
+```
+
+
